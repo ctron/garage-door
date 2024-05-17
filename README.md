@@ -36,3 +36,6 @@ out as it is much more elaborate than this project.
 However, the downside is that it considers itself a toolbox for implementing an OIDC provider, which sounds great,
 but also brings quite a lot of complexities due to its goal to be agnostic to all kinds of dependencies. And some of
 the important parts are bring-your-own.
+
+Actually this project makes use of `oxide-auth`. It's a very opinionated setup of it, adding some OpenID Connect
+features.
