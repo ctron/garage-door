@@ -32,6 +32,8 @@ Non-goals:
 This is a research project to learn about OIDC providers. While the goal is valid, this may never actually work.
 Right now it doesn't.
 
+Also see: [ToDo](TODO.md)
+
 ## Alternatives
 
 There's an existing project: [`oxide-auth`](https://github.com/HeroicKatora/oxide-auth). I think it's worth checking

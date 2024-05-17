@@ -1,5 +1,6 @@
 pub mod state;
 
+use crate::issuer::IssueBuildError;
 use crate::{endpoints, issuer::Issuer, server::state::ServerState};
 use actix_web::middleware::{Logger, NormalizePath};
 use actix_web::{web, App, HttpServer};
@@ -9,6 +10,7 @@ use std::{
     net::{AddrParseError, IpAddr, Ipv6Addr, SocketAddr},
 };
 use tokio::net::TcpListener;
+use url::Url;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StartupError {
@@ -16,6 +18,10 @@ pub enum StartupError {
     Io(#[from] io::Error),
     #[error(transparent)]
     Addr(#[from] AddrParseError),
+    #[error("failed to construct base URL: {0}")]
+    Url(#[from] url::ParseError),
+    #[error(transparent)]
+    Issue(#[from] IssueBuildError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -69,15 +75,15 @@ impl Server {
 
     /// Run the server until it's shut down
     pub async fn run(self) -> Result<(), StartupError> {
-        let state = ServerState::new(self.issuers.into_values().collect());
-
         let addr = SocketAddr::new(self.bind, self.port);
         let listener = TcpListener::bind(addr).await?;
         let listener = listener.into_std()?;
 
-        if let Ok(addr) = listener.local_addr() {
-            log::info!("Listening on: http://{addr}");
-        }
+        let addr = listener.local_addr()?;
+        let base = Url::parse(&format!("http://{addr}"))?;
+        log::info!("Listening on: {base}");
+
+        let state = ServerState::new(self.issuers.into_values().collect(), base)?;
 
         let state = web::Data::new(state);
 
@@ -89,7 +95,8 @@ impl Server {
                 .service(endpoints::index)
                 .service(endpoints::issuer::index)
                 .service(endpoints::issuer::discovery)
-                .service(endpoints::issuer::auth)
+                .service(endpoints::issuer::auth_get)
+                .service(endpoints::issuer::auth_post)
                 .service(endpoints::issuer::keys)
                 .service(endpoints::issuer::token)
         })

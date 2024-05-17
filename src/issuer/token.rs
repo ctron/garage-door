@@ -1,9 +1,10 @@
 use crate::oidc::AccessTokenClaims;
-use biscuit::jwa::SignatureAlgorithm;
-use biscuit::jws::{Compact, Header, RegisteredHeader, Secret};
-use biscuit::{ClaimsSet, RegisteredClaims, SingleOrMultiple, Timestamp, JWT};
-use oxide_auth::primitives::generator::TagGrant;
-use oxide_auth::primitives::grant::Grant;
+use biscuit::{
+    jwa::SignatureAlgorithm,
+    jws::{Compact, RegisteredHeader, Secret},
+    ClaimsSet, RegisteredClaims, SingleOrMultiple, Timestamp,
+};
+use oxide_auth::primitives::{generator::TagGrant, grant::Grant};
 
 pub struct JwtGenerator {
     issuer: String,

@@ -1,7 +1,9 @@
 use anyhow::{Context, Result};
 use clap::Parser;
-use garage_door::{issuer::Issuer, server::Server};
+use garage_door::config::Configuration;
+use garage_door::server::Server;
 use std::net::{IpAddr, Ipv6Addr};
+use std::path::PathBuf;
 use std::process::ExitCode;
 use tracing_subscriber::{filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt};
 use url::Url;
@@ -17,6 +19,9 @@ pub struct Cli {
     /// Public URL
     #[arg(short = 'u', long)]
     pub public_url: Option<Url>,
+    /// Configuration file
+    #[arg(short, long, default_value = "garage-door.yaml")]
+    pub config: PathBuf,
 }
 
 fn init_log() -> Result<()> {
@@ -47,17 +52,15 @@ async fn main() -> Result<ExitCode> {
 
     tracing::info!("Starting up...");
 
-    let public_url = match cli.public_url {
-        Some(public_url) => public_url,
-        // FIXME: need to align default host with actual binding address
-        None => Url::parse(&format!("http://localhost:{}", cli.port))?,
-    };
+    let config: Configuration = serde_yaml::from_reader(std::fs::File::open(&cli.config)?)?;
 
     let mut server = Server::new();
-    server
-        .port(cli.port)
-        .bind(cli.bind)
-        .add_issuer(Issuer::new("chickens", public_url)?)?;
+    server.port(cli.port).bind(cli.bind);
+
+    for issuer in config.issuers {
+        server.add_issuer(issuer)?;
+    }
+
     server.run().await?;
 
     Ok(ExitCode::SUCCESS)

@@ -1,6 +1,4 @@
-use biscuit::SingleOrMultiple;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 /// Access token claims
 #[derive(Clone, Debug, Deserialize, Serialize)]

@@ -1,0 +1,11 @@
+$schema: "../schema/config.json"
+issuers:
+  - name: chickens
+    clients:
+      - confidential:
+          id: client-id
+          secret: client-secret
+      - public:
+          id: frontend
+          redirect_url:
+            semantic: http://localhost:9090

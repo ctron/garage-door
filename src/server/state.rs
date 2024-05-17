@@ -1,6 +1,7 @@
-use crate::issuer::{Issuer, IssuerState};
+use crate::issuer::{IssueBuildError, Issuer, IssuerState};
 use std::collections::HashMap;
 use std::sync::Arc;
+use url::Url;
 
 #[derive(Clone)]
 pub struct ServerState {
@@ -8,16 +9,20 @@ pub struct ServerState {
 }
 
 impl ServerState {
-    pub fn new(issuer: Vec<Issuer>) -> Self {
+    pub fn new(issuer: Vec<Issuer>, base: Url) -> Result<Self, IssueBuildError> {
         let inner = InnerServerState {
             issuers: issuer
                 .into_iter()
-                .map(|issuer| (issuer.name.clone(), issuer.build()))
-                .collect(),
+                .map(|issuer| {
+                    let name = issuer.name.clone();
+                    let state = issuer.build(base.clone())?;
+                    Ok::<_, IssueBuildError>((name, state))
+                })
+                .collect::<Result<_, _>>()?,
         };
-        Self {
+        Ok(Self {
             inner: Arc::new(inner),
-        }
+        })
     }
 
     pub fn issuer(&self, name: &str) -> Option<IssuerState> {
