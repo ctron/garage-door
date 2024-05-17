@@ -4,7 +4,11 @@
 
 ## Rationale
 
-OpenID Connect is great
+OpenID Connect (OIDC) is great, but complicated. There are great solutions out there allowing one to set up an OIDC
+provider (server). However, sometimes all of those solutions are pure overkill. All that one would need is a simple
+single username/password setup, just a config file, no database, no customizations, no cloud stuff.
+
+That's the itch, this project tries to be the scratch.
 
 ## Goals and non-goals
 
