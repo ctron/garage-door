@@ -134,10 +134,10 @@ pub async fn token(
     })
 }
 
-pub fn with_solicitor<'a, S>(
-    endpoint: &'a mut crate::issuer::Endpoint,
+pub fn with_solicitor<S>(
+    endpoint: &mut crate::issuer::Endpoint,
     solicitor: S,
-) -> impl Endpoint<OAuthRequest, Error = WebError> + 'a
+) -> impl Endpoint<OAuthRequest, Error = WebError> + '_
 where
     S: OwnerSolicitor<OAuthRequest> + 'static,
 {

@@ -367,12 +367,6 @@ checksum = "4c7f02d4ea65f2c1853089ffd8d2787bdbc63de2f0d29dedbcf8ccdfa0ccd4cf"
 
 [[package]]
 name = "base64"
-version = "0.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
-
-[[package]]
-name = "base64"
 version = "0.21.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
@@ -987,6 +981,7 @@ dependencies = [
  "biscuit",
  "chrono",
  "clap",
+ "hide",
  "log",
  "mime",
  "openidconnect",
@@ -1099,6 +1094,16 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "hide"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6b0d0e3e02785cd1c901e70d918e140c108d41e1f6a1f9881425d160e811bdd"
+dependencies = [
+ "schemars",
+ "serde",
+]
 
 [[package]]
 name = "hkdf"
@@ -1526,10 +1531,8 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 [[package]]
 name = "oxide-auth"
 version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06729d9f5ee0fcade59be20aef48231be773808ea3d2eda2fcac394f678cfd95"
 dependencies = [
- "base64 0.13.1",
+ "base64 0.21.7",
  "chrono",
  "hmac",
  "once_cell",
@@ -1862,14 +1865,13 @@ dependencies = [
 
 [[package]]
 name = "rust-argon2"
-version = "1.0.1"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5885493fdf0be6cdff808d1533ce878d21cfa49c7086fa00c66355cd9141bfc"
+checksum = "9d9848531d60c9cbbcf9d166c885316c24bc0e2a9d3eba0956bb6cbbd79bc6e8"
 dependencies = [
  "base64 0.21.7",
  "blake2b_simd",
  "constant_time_eq",
- "crossbeam-utils",
 ]
 
 [[package]]
@@ -1901,9 +1903,9 @@ checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
 name = "schemars"
-version = "0.8.19"
+version = "0.8.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc6e7ed6919cb46507fb01ff1654309219f62b4d603822501b0b80d42f6f21ef"
+checksum = "b0218ceea14babe24a4a5836f86ade86c1effbc198164e619194cb5069187e29"
 dependencies = [
  "dyn-clone",
  "schemars_derive",
@@ -1914,9 +1916,9 @@ dependencies = [
 
 [[package]]
 name = "schemars_derive"
-version = "0.8.19"
+version = "0.8.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "185f2b7aa7e02d418e453790dde16890256bbd2bcd04b7dc5348811052b53f49"
+checksum = "3ed5a1ccce8ff962e31a165d41f6e2a2dd1245099dc4d594f5574a86cd90f4d3"
 dependencies = [
  "proc-macro2",
  "quote",

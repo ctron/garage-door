@@ -1,8 +1,12 @@
+mod redirect_url;
 mod token;
+
+pub use redirect_url::*;
 
 use crate::endpoints::Error;
 use crate::issuer::token::JwtGenerator;
 use biscuit::jws::Secret;
+use hide::Hide;
 use openidconnect::core::{
     CoreClientAuthMethod, CoreJsonWebKeySet, CoreResponseType, CoreSubjectIdentifierType,
 };
@@ -14,12 +18,11 @@ use oxide_auth::{
     frontends::simple::endpoint::{Generic, Vacant},
     primitives::{
         prelude::{Client as OxideClient, *},
-        registrar::{ExactUrl, RegisteredUrl},
+        registrar::RegisteredUrl,
         scope::ParseScopeErr,
     },
 };
 use oxide_auth_actix::OAuthResponse;
-use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use url::Url;
@@ -42,15 +45,17 @@ pub struct Issuer {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum Client {
+    #[serde(rename_all = "camelCase")]
     Confidential {
         id: String,
-        secret: String,
+        secret: Hide<String>,
         #[serde(default = "default::default_scope")]
         default_scope: String,
     },
+    #[serde(rename_all = "camelCase")]
     Public {
         id: String,
-        redirect_url: RedirectUrl,
+        redirect_urls: Vec<RedirectUrlOrString>,
         #[serde(default = "default::default_scope")]
         default_scope: String,
     },
@@ -62,49 +67,14 @@ mod default {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub enum RedirectUrl {
-    Semantic(Url),
-    Exact(String),
-    // FIXME: use once https://github.com/HeroicKatora/oxide-auth/issues/175 is fixed
-    /*
-    #[serde(rename_all = "camelCase")]
-    Exact {
-        url: String,
-        /// ignore the port on localhost URLs
-        ignore_localhost_port: bool,
-    },*/
-}
-
-impl TryFrom<RedirectUrl> for RegisteredUrl {
-    type Error = url::ParseError;
-
-    fn try_from(value: RedirectUrl) -> Result<Self, Self::Error> {
-        Ok(match value {
-            RedirectUrl::Semantic(url) => Self::Semantic(url),
-            RedirectUrl::Exact(url) => Self::Exact(ExactUrl::from_str(&url)?),
-            // FIXME: use once https://github.com/HeroicKatora/oxide-auth/issues/175 is fixed
-            /*
-            RedirectUrl::Exact {
-                url,
-                ignore_localhost_port: false,
-            } => Self::Exact(ExactUrl::from_str(&url)?),
-            RedirectUrl::Exact {
-                url,
-                ignore_localhost_port: true,
-            } => Self::IgnorePortOnLocalhost(IgnoreLocalPortUrl::from_str(&url)?),
-             */
-        })
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum IssueBuildError {
     #[error(transparent)]
     Url(#[from] url::ParseError),
     #[error(transparent)]
     Scope(#[from] ParseScopeErr),
+    #[error("Public client requires at least one redirect URI")]
+    MissingRedirectUri,
 }
 
 impl Issuer {
@@ -144,14 +114,22 @@ impl Issuer {
                 }
                 Client::Public {
                     id,
-                    redirect_url,
+                    redirect_urls,
                     default_scope,
                 } => {
-                    registrar.push(OxideClient::public(
-                        &id,
-                        redirect_url.try_into()?,
-                        default_scope.parse()?,
-                    ));
+                    let mut i = redirect_urls.into_iter();
+                    let redirect_uri = i.next().ok_or(IssueBuildError::MissingRedirectUri)?;
+                    registrar.push(
+                        OxideClient::public(
+                            &id,
+                            redirect_uri.0.try_into()?,
+                            default_scope.parse()?,
+                        )
+                        .with_additional_redirect_uris(
+                            i.map(|uri| uri.0.try_into())
+                                .collect::<Result<Vec<_>, _>>()?,
+                        ),
+                    );
                 }
             }
         }

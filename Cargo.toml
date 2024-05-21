@@ -13,19 +13,20 @@ readme = "README.md"
 rust-version = "1.78"
 
 [dependencies]
-log = "0.4.21"
-thiserror = "1"
-tokio = "1"
-tracing = "0.1.40"
+actix-web = "4"
 anyhow = "1"
+hide = { version = "0.1.5", features = ["serde", "schemars"] }
+log = "0.4.21"
+mime = "0.3.17"
+schemars = { version = "0.8", features = ["derive", "url"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.8.26"
-actix-web = "4"
-mime = "0.3.17"
-url = "2.5.0"
 strum = { version = "0.26.2", features = ["derive"] }
-schemars = { version = "0.8", features = ["derive", "url"] }
+thiserror = "1"
+tokio = "1"
+tracing = "0.1.40"
+url = "2.5.0"
 
 chrono = "0.4"
 biscuit = "0.7.0"
@@ -38,7 +39,6 @@ openidconnect = { version = "4.0.0-alpha.1", default-features = false }
 clap = { version = "4.5.4", features = ["derive", "env"], optional = true }
 tracing-subscriber = { version = "0.3.18", features = ["tracing-log", "ansi", "env-filter"], optional = true }
 
-
 [features]
 default = []
 server = [
@@ -50,3 +50,6 @@ server = [
 [[bin]]
 name = "server"
 required-features = ["server"]
+
+[patch.crates-io]
+oxide-auth = { path = "../oxide-auth/oxide-auth" }

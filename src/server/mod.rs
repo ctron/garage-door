@@ -4,6 +4,7 @@ use crate::issuer::IssueBuildError;
 use crate::{endpoints, issuer::Issuer, server::state::ServerState};
 use actix_web::middleware::{Logger, NormalizePath};
 use actix_web::{web, App, HttpServer};
+use log::Level::Info;
 use std::{
     collections::{hash_map::Entry, HashMap},
     io,
@@ -78,6 +79,13 @@ impl Server {
         let addr = SocketAddr::new(self.bind, self.port);
         let listener = TcpListener::bind(addr).await?;
         let listener = listener.into_std()?;
+
+        if log::log_enabled!(Info) {
+            log::info!("Issuers:");
+            for (k, v) in &self.issuers {
+                log::info!("  {k} = {v:#?}");
+            }
+        }
 
         let addr = listener.local_addr()?;
         let base = Url::parse(&format!("http://{addr}"))?;

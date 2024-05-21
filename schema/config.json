@@ -29,7 +29,7 @@
                 "secret"
               ],
               "properties": {
-                "default_scope": {
+                "defaultScope": {
                   "default": "openid",
                   "type": "string"
                 },
@@ -54,18 +54,21 @@
               "type": "object",
               "required": [
                 "id",
-                "redirect_url"
+                "redirectUrls"
               ],
               "properties": {
-                "default_scope": {
+                "defaultScope": {
                   "default": "openid",
                   "type": "string"
                 },
                 "id": {
                   "type": "string"
                 },
-                "redirect_url": {
-                  "$ref": "#/definitions/RedirectUrl"
+                "redirectUrls": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/RedirectUrlOrString"
+                  }
                 }
               }
             }
@@ -92,45 +95,53 @@
         }
       }
     },
-    "RedirectUrl": {
+    "RedirectUrlOrString": {
       "oneOf": [
         {
-          "type": "object",
-          "required": [
-            "semantic"
-          ],
-          "properties": {
-            "semantic": {
-              "type": "string",
-              "format": "uri"
-            }
-          },
-          "additionalProperties": false
+          "type": "string",
+          "format": "uri"
         },
         {
-          "type": "object",
-          "required": [
-            "exact"
-          ],
-          "properties": {
-            "exact": {
+          "oneOf": [
+            {
               "type": "object",
               "required": [
-                "ignoreLocalhostPort",
-                "url"
+                "semantic"
               ],
               "properties": {
-                "ignoreLocalhostPort": {
-                  "description": "ignore the port on localhost URLs",
-                  "type": "boolean"
-                },
-                "url": {
-                  "type": "string"
+                "semantic": {
+                  "type": "string",
+                  "format": "uri"
                 }
-              }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "exact"
+              ],
+              "properties": {
+                "exact": {
+                  "type": "object",
+                  "required": [
+                    "url"
+                  ],
+                  "properties": {
+                    "ignoreLocalhostPort": {
+                      "description": "ignore the port on localhost URLs",
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
             }
-          },
-          "additionalProperties": false
+          ]
         }
       ]
     }
