@@ -87,12 +87,13 @@ pub struct Issuer {
 }
 
 impl Issuer {
-    pub fn new<I>(scopes: I) -> anyhow::Result<Self>
+    pub fn new<I, S>(scopes: I) -> anyhow::Result<Self>
     where
-        I: IntoIterator<Item = String>,
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
     {
         Ok(Self {
-            scopes: scopes.into_iter().collect(),
+            scopes: scopes.into_iter().map(|s| s.into()).collect(),
             clients: Default::default(),
         })
     }

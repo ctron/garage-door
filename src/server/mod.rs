@@ -1,4 +1,4 @@
-mod app;
+pub mod app;
 pub mod state;
 
 use crate::{issuer::IssueBuildError, issuer::Issuer, server::app::Application};
