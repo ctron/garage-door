@@ -74,8 +74,14 @@ impl Server {
         }
     }
 
-    /// Run the server until it's shut down
+    /// Run the server
     pub async fn run(self) -> Result<(), StartupError> {
+        self.create().await?.await?;
+        Ok(())
+    }
+
+    /// Turn the server into an http server, runs when polled (using .await)
+    pub async fn create(self) -> Result<actix_web::dev::Server, StartupError> {
         let addr = SocketAddr::new(self.bind, self.port);
         let listener = TcpListener::bind(addr).await?;
         let listener = listener.into_std()?;
@@ -86,16 +92,13 @@ impl Server {
 
         let app = Application::new(base, self.issuers)?;
 
-        HttpServer::new(move || {
+        Ok(HttpServer::new(move || {
             App::new()
                 .wrap(NormalizePath::trim())
                 .wrap(Logger::default())
                 .configure(|svc| app.configure(svc))
         })
         .listen(listener)?
-        .run()
-        .await?;
-
-        Ok(())
+        .run())
     }
 }

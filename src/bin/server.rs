@@ -57,11 +57,11 @@ async fn main() -> Result<ExitCode> {
     let mut server = Server::new();
     server.port(cli.port).bind(cli.bind);
 
-    for issuer in config.issuers {
-        server.add_issuer(issuer)?;
+    for (name, issuer) in config.issuers {
+        server.add_issuer(name, issuer)?;
     }
 
-    server.run().await?;
+    server.run().await?.await?;
 
     Ok(ExitCode::SUCCESS)
 }
