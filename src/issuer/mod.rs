@@ -49,7 +49,8 @@ pub enum Client {
     #[serde(rename_all = "camelCase")]
     Public {
         id: String,
-        redirect_urls: Vec<RedirectUrlOrString>,
+        #[serde(deserialize_with = "redirect_url::or_string::deserialize_vec")]
+        redirect_urls: Vec<RedirectUrl>,
         #[serde(default = "default::default_scope")]
         default_scope: String,
     },
@@ -130,15 +131,10 @@ impl Issuer {
                     let mut i = redirect_urls.into_iter();
                     let redirect_uri = i.next().ok_or(IssueBuildError::MissingRedirectUri)?;
                     registrar.push(
-                        OxideClient::public(
-                            &id,
-                            redirect_uri.0.try_into()?,
-                            default_scope.parse()?,
-                        )
-                        .with_additional_redirect_uris(
-                            i.map(|uri| uri.0.try_into())
-                                .collect::<Result<Vec<_>, _>>()?,
-                        ),
+                        OxideClient::public(&id, redirect_uri.try_into()?, default_scope.parse()?)
+                            .with_additional_redirect_uris(
+                                i.map(|uri| uri.try_into()).collect::<Result<Vec<_>, _>>()?,
+                            ),
                     );
                 }
             }

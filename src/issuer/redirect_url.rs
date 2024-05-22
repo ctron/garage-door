@@ -12,7 +12,7 @@ use std::{fmt::Formatter, str::FromStr};
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RedirectUrlOrString(pub RedirectUrl);
+struct RedirectUrlOrString(pub RedirectUrl);
 
 impl Serialize for RedirectUrlOrString {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -121,35 +121,58 @@ impl TryFrom<RedirectUrl> for RegisteredUrl {
     }
 }
 
+pub mod or_string {
+    use super::*;
+    use crate::issuer::RedirectUrl;
+    use serde::{Deserialize, Deserializer};
+
+    pub fn deserialize_vec<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Vec<RedirectUrl>, D::Error> {
+        let items = Vec::<RedirectUrlOrString>::deserialize(deserializer)?;
+        Ok(items.into_iter().map(|r| r.0).collect())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::issuer::Client;
+    use anyhow::bail;
     use serde_json::json;
 
     #[test]
-    fn deser() -> anyhow::Result<()> {
+    fn deser_client() -> anyhow::Result<()> {
+        let client = serde_json::from_value::<Client>(json!({
+            "public": {
+                "id": "client-id",
+                "redirectUrls": [
+                    "https://example.com/foo",
+                    "https://localhost/foo",
+                    "https://localhost:1234/foo",
+                    {
+                        "semantic": "https://example.com/bar",
+                    },
+                    {
+                        "exact": {
+                            "url": "https://example.com/foo/bar"
+                        },
+                    }, {
+                        "exact": {
+                            "url": "https://example.com/foo/bar/baz",
+                            "ignoreLocalhostPort": true,
+                        },
+                    }
+                ]
+            }
+        }))?;
+
+        let Client::Public { redirect_urls, .. } = client else {
+            bail!("must be a public client");
+        };
+
         assert_eq!(
-            serde_json::from_value::<Vec<RedirectUrlOrString>>(json!([
-                "https://example.com/foo",
-                "https://localhost/foo",
-                "https://localhost:1234/foo",
-                {
-                    "semantic": "https://example.com/bar",
-                },
-                {
-                    "exact": {
-                        "url": "https://example.com/foo/bar"
-                    },
-                }, {
-                    "exact": {
-                        "url": "https://example.com/foo/bar/baz",
-                        "ignoreLocalhostPort": true,
-                    },
-                }
-            ]))?
-            .into_iter()
-            .map(|e| e.0)
-            .collect::<Vec<_>>(),
+            redirect_urls,
             vec![
                 RedirectUrl::Exact {
                     url: "https://example.com/foo".into(),
