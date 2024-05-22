@@ -1,10 +1,11 @@
+mod app;
 pub mod state;
 
-use crate::issuer::IssueBuildError;
-use crate::{endpoints, issuer::Issuer, server::state::ServerState};
-use actix_web::middleware::{Logger, NormalizePath};
-use actix_web::{web, App, HttpServer};
-use log::Level::Info;
+use crate::{issuer::IssueBuildError, issuer::Issuer, server::app::Application};
+use actix_web::{
+    middleware::{Logger, NormalizePath},
+    App, HttpServer,
+};
 use std::{
     collections::{hash_map::Entry, HashMap},
     io,
@@ -63,14 +64,13 @@ impl Server {
         self
     }
 
-    pub fn add_issuer(&mut self, issuer: Issuer) -> Result<&mut Self, Error> {
-        let name = issuer.name.clone();
-        match self.issuers.entry(name) {
+    pub fn add_issuer(&mut self, name: String, issuer: Issuer) -> Result<&mut Self, Error> {
+        match self.issuers.entry(name.clone()) {
             Entry::Vacant(entry) => {
                 entry.insert(issuer);
                 Ok(self)
             }
-            Entry::Occupied(_) => Err(Error::DuplicateIssuer(issuer.name)),
+            Entry::Occupied(_) => Err(Error::DuplicateIssuer(name)),
         }
     }
 
@@ -80,33 +80,17 @@ impl Server {
         let listener = TcpListener::bind(addr).await?;
         let listener = listener.into_std()?;
 
-        if log::log_enabled!(Info) {
-            log::info!("Issuers:");
-            for (k, v) in &self.issuers {
-                log::info!("  {k} = {v:#?}");
-            }
-        }
-
         let addr = listener.local_addr()?;
         let base = Url::parse(&format!("http://{addr}"))?;
         log::info!("Listening on: {base}");
 
-        let state = ServerState::new(self.issuers.into_values().collect(), base)?;
-
-        let state = web::Data::new(state);
+        let app = Application::new(base, self.issuers)?;
 
         HttpServer::new(move || {
             App::new()
                 .wrap(NormalizePath::trim())
                 .wrap(Logger::default())
-                .app_data(state.clone())
-                .service(endpoints::index)
-                .service(endpoints::issuer::index)
-                .service(endpoints::issuer::discovery)
-                .service(endpoints::issuer::auth_get)
-                .service(endpoints::issuer::auth_post)
-                .service(endpoints::issuer::keys)
-                .service(endpoints::issuer::token)
+                .configure(|svc| app.configure(svc))
         })
         .listen(listener)?
         .run()

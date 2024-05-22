@@ -1,11 +1,14 @@
 use oxide_auth::primitives::registrar::{ExactUrl, IgnoreLocalPortUrl, RegisteredUrl};
-use schemars::gen::SchemaGenerator;
-use schemars::schema::{Schema, SchemaObject, SubschemaValidation};
-use schemars::JsonSchema;
-use serde::de::{Error, MapAccess};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use std::fmt::Formatter;
-use std::str::FromStr;
+use schemars::{
+    gen::SchemaGenerator,
+    schema::{Schema, SchemaObject, SubschemaValidation},
+    JsonSchema,
+};
+use serde::{
+    de::{self, Error, MapAccess},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
+use std::{fmt::Formatter, str::FromStr};
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -38,10 +41,8 @@ impl<'de> Deserialize<'de> for RedirectUrlOrString {
             where
                 E: Error,
             {
-                let ignore_localhost_port = match Url::parse(v) {
-                    Ok(url) if url.host_str() == Some("localhost") => true,
-                    _ => false,
-                };
+                let ignore_localhost_port =
+                    matches!(Url::parse(v), Ok(url) if url.host_str() == Some("localhost"));
 
                 Ok(RedirectUrlOrString(RedirectUrl::Exact {
                     url: v.to_string(),

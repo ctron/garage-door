@@ -3,12 +3,12 @@ mod token;
 
 pub use redirect_url::*;
 
-use crate::endpoints::Error;
-use crate::issuer::token::JwtGenerator;
+use crate::{endpoints::Error, issuer::token::JwtGenerator};
 use biscuit::jws::Secret;
 use hide::Hide;
 use openidconnect::core::{
-    CoreClientAuthMethod, CoreJsonWebKeySet, CoreResponseType, CoreSubjectIdentifierType,
+    CoreClientAuthMethod, CoreGrantType, CoreJsonWebKeySet, CoreResponseType,
+    CoreSubjectIdentifierType,
 };
 use openidconnect::{
     AuthUrl, EmptyAdditionalProviderMetadata, IssuerUrl, JsonWebKeySetUrl, LogoutProviderMetadata,
@@ -37,12 +37,6 @@ pub type Endpoint = Generic<
 >;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub struct Issuer {
-    pub name: String,
-    pub clients: Vec<Client>,
-}
-
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum Client {
     #[serde(rename_all = "camelCase")]
@@ -61,6 +55,15 @@ pub enum Client {
     },
 }
 
+impl Client {
+    pub fn id(&self) -> &str {
+        match self {
+            Client::Confidential { id, .. } => id,
+            Client::Public { id, .. } => id,
+        }
+    }
+}
+
 mod default {
     pub fn default_scope() -> String {
         "openid".to_string()
@@ -77,11 +80,19 @@ pub enum IssueBuildError {
     MissingRedirectUri,
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+pub struct Issuer {
+    pub scopes: Vec<String>,
+    pub clients: Vec<Client>,
+}
+
 impl Issuer {
-    pub fn new(name: impl Into<String>) -> anyhow::Result<Self> {
-        let name = name.into();
+    pub fn new<I>(scopes: I) -> anyhow::Result<Self>
+    where
+        I: IntoIterator<Item = String>,
+    {
         Ok(Self {
-            name,
+            scopes: scopes.into_iter().collect(),
             clients: Default::default(),
         })
     }
@@ -92,8 +103,6 @@ impl Issuer {
     }
 
     pub fn build(self, base: Url) -> Result<IssuerState, IssueBuildError> {
-        let base = base.join(&self.name)?;
-
         let mut registrar = vec![];
 
         for client in self.clients {
@@ -142,12 +151,15 @@ impl Issuer {
             authorizer: AuthMap::new(RandomGenerator::new(16)),
             issuer: TokenMap::new(JwtGenerator::new(base.to_string(), secret)),
             solicitor: Vacant,
-            scopes: vec!["default-scope".parse().unwrap()],
+            scopes: self
+                .scopes
+                .into_iter()
+                .map(|scope| scope.parse())
+                .collect::<Result<Vec<_>, _>>()?,
             response: OAuthResponse::ok,
         };
 
         Ok(IssuerState {
-            name: self.name,
             inner: Arc::new(RwLock::new(InnerState { endpoint })),
         })
     }
@@ -155,7 +167,6 @@ impl Issuer {
 
 #[derive(Clone)]
 pub struct IssuerState {
-    pub name: String,
     pub inner: Arc<RwLock<InnerState>>,
 }
 
@@ -166,7 +177,17 @@ impl IssuerState {
         Ok(CoreJsonWebKeySet::new(keys))
     }
 
-    pub fn discovery(&self, base: Url) -> Result<ProviderMetadataWithLogout, Error> {
+    pub async fn discovery(&self, base: Url) -> Result<ProviderMetadataWithLogout, Error> {
+        let scopes = self
+            .inner
+            .read()
+            .await
+            .endpoint
+            .scopes
+            .iter()
+            .map(|scope| oauth2::Scope::new(scope.to_string()))
+            .collect();
+
         let build = {
             let base = base.clone();
             move |segment| {
@@ -204,6 +225,11 @@ impl IssuerState {
         .set_token_endpoint_auth_methods_supported(Some(vec![
             CoreClientAuthMethod::ClientSecretBasic,
             CoreClientAuthMethod::ClientSecretPost,
+        ]))
+        .set_scopes_supported(Some(scopes))
+        .set_grant_types_supported(Some(vec![
+            CoreGrantType::ClientCredentials,
+            CoreGrantType::AuthorizationCode,
         ])))
     }
 }

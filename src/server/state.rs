@@ -1,21 +1,33 @@
 use crate::issuer::{IssueBuildError, Issuer, IssuerState};
+use log::Level::Info;
 use std::collections::HashMap;
 use std::sync::Arc;
 use url::Url;
 
 #[derive(Clone)]
-pub struct ServerState {
-    inner: Arc<InnerServerState>,
+pub struct ApplicationState {
+    inner: Arc<InnerApplicationState>,
 }
 
-impl ServerState {
-    pub fn new(issuer: Vec<Issuer>, base: Url) -> Result<Self, IssueBuildError> {
-        let inner = InnerServerState {
-            issuers: issuer
+impl ApplicationState {
+    pub fn new(issuers: HashMap<String, Issuer>, base: Url) -> Result<Self, IssueBuildError> {
+        if log::log_enabled!(Info) {
+            log::info!("Issuers:");
+            for (name, issuer) in &issuers {
+                log::info!("  {name}");
+                log::info!("  Clients:");
+                for client in &issuer.clients {
+                    log::info!("    {} = {:?}", client.id(), client);
+                }
+            }
+        }
+
+        let inner = InnerApplicationState {
+            issuers: issuers
                 .into_iter()
-                .map(|issuer| {
-                    let name = issuer.name.clone();
-                    let state = issuer.build(base.clone())?;
+                .map(|(name, issuer)| {
+                    let base = base.join(&name)?;
+                    let state = issuer.build(base)?;
                     Ok::<_, IssueBuildError>((name, state))
                 })
                 .collect::<Result<_, _>>()?,
@@ -30,6 +42,6 @@ impl ServerState {
     }
 }
 
-struct InnerServerState {
+struct InnerApplicationState {
     issuers: HashMap<String, IssuerState>,
 }

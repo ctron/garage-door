@@ -1,5 +1,5 @@
 use crate::endpoints::Error;
-use crate::server::state::ServerState;
+use crate::server::state::ApplicationState;
 use actix_web::dev::ConnectionInfo;
 use actix_web::web::Json;
 use actix_web::{get, post, web, HttpResponse, Responder};
@@ -12,7 +12,7 @@ use url::Url;
 
 #[get("/{issuer}/.well-known/openid-configuration")]
 pub async fn discovery(
-    server: web::Data<ServerState>,
+    server: web::Data<ApplicationState>,
     path: web::Path<String>,
     conn: ConnectionInfo,
 ) -> Result<impl Responder, Error> {
@@ -24,26 +24,26 @@ pub async fn discovery(
         .issuer(&name)
         .ok_or_else(|| Error::UnknownIssuer(name))?;
 
-    Ok(HttpResponse::Ok().json(issuer.discovery(base)?))
+    Ok(HttpResponse::Ok().json(issuer.discovery(base).await?))
 }
 
 #[get("/{issuer}")]
 pub async fn index(
-    server: web::Data<ServerState>,
+    server: web::Data<ApplicationState>,
     path: web::Path<String>,
 ) -> Result<String, Error> {
     let name = path.into_inner();
 
-    let issuer = server
+    let _issuer = server
         .issuer(&name)
-        .ok_or_else(|| Error::UnknownIssuer(name))?;
+        .ok_or_else(|| Error::UnknownIssuer(name.clone()))?;
 
-    Ok(format!("Issuer: {}", issuer.name))
+    Ok(format!("Issuer: {name}"))
 }
 
 #[get("/{issuer}/auth")]
 pub async fn auth_get(
-    server: web::Data<ServerState>,
+    server: web::Data<ApplicationState>,
     path: web::Path<String>,
     req: OAuthRequest,
 ) -> Result<impl Responder, Error> {
@@ -65,7 +65,7 @@ pub async fn auth_get(
 
 #[post("/{issuer}/auth")]
 pub async fn auth_post(
-    server: web::Data<ServerState>,
+    server: web::Data<ApplicationState>,
     path: web::Path<String>,
     req: OAuthRequest,
 ) -> Result<impl Responder, Error> {
@@ -89,7 +89,7 @@ pub async fn auth_post(
 
 #[get("/{issuer}/keys")]
 pub async fn keys(
-    server: web::Data<ServerState>,
+    server: web::Data<ApplicationState>,
     path: web::Path<String>,
 ) -> Result<impl Responder, Error> {
     let name = path.into_inner();
@@ -103,7 +103,7 @@ pub async fn keys(
 
 #[post("/{issuer}/token")]
 pub async fn token(
-    server: web::Data<ServerState>,
+    server: web::Data<ApplicationState>,
     path: web::Path<String>,
     req: OAuthRequest,
 ) -> Result<impl Responder, Error> {

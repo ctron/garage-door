@@ -35,6 +35,7 @@ oxide-auth = "0.5.4"
 oxide-auth-actix = "0.2"
 
 openidconnect = { version = "4.0.0-alpha.1", default-features = false }
+oauth2 = "5.0.0-alpha.4"
 
 clap = { version = "4.5.4", features = ["derive", "env"], optional = true }
 tracing-subscriber = { version = "0.3.18", features = ["tracing-log", "ansi", "env-filter"], optional = true }

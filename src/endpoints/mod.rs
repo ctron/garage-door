@@ -43,7 +43,7 @@ impl ResponseError for Error {
 
 #[get("/")]
 pub async fn index() -> String {
-    "Hello World!".into()
+    "".into()
 }
 
 pub mod issuer;
