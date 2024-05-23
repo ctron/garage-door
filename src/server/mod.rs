@@ -7,7 +7,6 @@ use actix_web::{
     middleware::{Logger, NormalizePath},
     web, App, HttpServer,
 };
-use std::borrow::Cow;
 use std::{
     collections::{hash_map::Entry, HashMap},
     io,
@@ -39,6 +38,7 @@ pub struct Server {
     bind: IpAddr,
 
     base: Option<String>,
+    announce_url: Option<Box<dyn FnOnce(Url) + Send + Sync + 'static>>,
 
     issuers: HashMap<String, Issuer>,
 }
@@ -56,7 +56,13 @@ impl Server {
             bind: IpAddr::V6(Ipv6Addr::LOCALHOST),
             issuers: Default::default(),
             base: None,
+            announce_url: None,
         }
+    }
+
+    pub fn announce_url(&mut self, f: impl FnOnce(Url) + Send + Sync + 'static) -> &mut Self {
+        self.announce_url = Some(Box::new(f));
+        self
     }
 
     pub fn base(&mut self, base: impl Into<String>) -> &mut Self {
@@ -91,7 +97,7 @@ impl Server {
     }
 
     /// Turn the server into an http server, runs when polled (using .await)
-    pub async fn create(self) -> Result<actix_web::dev::Server, StartupError> {
+    pub async fn create(mut self) -> Result<actix_web::dev::Server, StartupError> {
         let addr = SocketAddr::new(self.bind, self.port);
         let listener = TcpListener::bind(addr).await?;
         let listener = listener.into_std()?;
@@ -99,11 +105,15 @@ impl Server {
         let addr = listener.local_addr()?;
         let public_base = Url::parse(&format!("http://{addr}"))?;
 
-        let mut info_base = Cow::Borrowed(&public_base);
-        if let Some(path) = &self.base {
-            info_base = Cow::Owned(public_base.join(path)?);
+        let announce_base = if let Some(path) = &self.base {
+            public_base.join(path)?
+        } else {
+            public_base.clone()
+        };
+        log::info!("Listening on: {announce_base}");
+        if let Some(f) = self.announce_url.take() {
+            f(announce_base)
         }
-        log::info!("Listening on: {info_base}");
 
         let app = Application::new(public_base, self.base.clone(), self.issuers)?;
 
