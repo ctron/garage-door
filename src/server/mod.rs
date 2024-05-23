@@ -57,6 +57,11 @@ impl Server {
         }
     }
 
+    pub fn base(&mut self, base: impl Into<String>) -> &mut Self {
+        self.base = Some(base.into());
+        self
+    }
+
     pub fn port(&mut self, port: u16) -> &mut Self {
         self.port = port;
         self
