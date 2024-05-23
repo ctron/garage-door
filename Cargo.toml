@@ -14,10 +14,15 @@ rust-version = "1.78"
 
 [dependencies]
 actix-web = "4"
+actix-cors = "0.7"
 anyhow = "1"
+biscuit = "0.7.0"
+chrono = "0.4"
 hide = { version = "0.1.5", features = ["serde", "schemars"] }
 log = "0.4.21"
 mime = "0.3.17"
+oauth2 = "5.0.0-alpha.4"
+openidconnect = { version = "4.0.0-alpha.1", default-features = false }
 schemars = { version = "0.8", features = ["derive", "url"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -28,14 +33,8 @@ tokio = "1"
 tracing = "0.1.40"
 url = "2.5.0"
 
-chrono = "0.4"
-biscuit = "0.7.0"
-
 oxide-auth = "0.5.4"
 oxide-auth-actix = "0.2"
-
-openidconnect = { version = "4.0.0-alpha.1", default-features = false }
-oauth2 = "5.0.0-alpha.4"
 
 clap = { version = "4.5.4", features = ["derive", "env"], optional = true }
 tracing-subscriber = { version = "0.3.18", features = ["tracing-log", "ansi", "env-filter"], optional = true }

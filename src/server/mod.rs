@@ -2,6 +2,7 @@ pub mod app;
 pub mod state;
 
 use crate::{issuer::IssueBuildError, issuer::Issuer, server::app::Application};
+use actix_cors::Cors;
 use actix_web::{
     middleware::{Logger, NormalizePath},
     web, App, HttpServer,
@@ -108,6 +109,7 @@ impl Server {
 
         Ok(HttpServer::new(move || {
             App::new()
+                .wrap(Cors::permissive())
                 .wrap(NormalizePath::trim())
                 .wrap(Logger::default())
                 .configure(|svc| match &self.base {
