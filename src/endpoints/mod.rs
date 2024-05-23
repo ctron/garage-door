@@ -1,5 +1,6 @@
+use crate::server::state::ApplicationState;
 use actix_web::body::BoxBody;
-use actix_web::{get, HttpResponse, ResponseError};
+use actix_web::{get, web, HttpResponse, Responder, ResponseError};
 use oxide_auth_actix::WebError;
 use serde::Serialize;
 
@@ -41,9 +42,23 @@ impl ResponseError for Error {
     }
 }
 
-#[get("/")]
-pub async fn index() -> String {
-    "".into()
+#[get("")]
+pub async fn index(app: web::Data<ApplicationState>) -> impl Responder {
+    let issuers = app
+        .issuers()
+        .into_iter()
+        .map(|name| format!("  * {name}\n"))
+        .collect::<String>();
+    format!(
+        r#"Garage Door
+============
+
+Issuers:
+
+{issuers}
+
+"#
+    )
 }
 
 pub mod issuer;

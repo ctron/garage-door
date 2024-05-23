@@ -37,8 +37,14 @@ impl ApplicationState {
         })
     }
 
+    /// Get a single issuer by name
     pub fn issuer(&self, name: &str) -> Option<IssuerState> {
         self.inner.issuers.get(name).cloned()
+    }
+
+    /// Get the names of all issuers
+    pub fn issuers(&self) -> Vec<String> {
+        self.inner.issuers.keys().cloned().collect()
     }
 }
 

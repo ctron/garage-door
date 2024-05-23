@@ -1,7 +1,9 @@
 $schema: "../schema/config.json"
 
 issuers:
-  - name: chickens
+  chickens:
+    scopes:
+      - openid
     clients:
       - confidential:
           id: client-id

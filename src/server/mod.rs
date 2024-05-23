@@ -109,7 +109,8 @@ impl Server {
                 .wrap(Logger::default())
                 .configure(|svc| match &self.base {
                     Some(path) => {
-                        web::scope(&format!("/{path}")).configure(|svc| app.configure(svc));
+                        let scope = format!("/{path}");
+                        svc.service(web::scope(&scope).configure(|svc| app.configure(svc)));
                     }
                     None => app.configure(svc),
                 })

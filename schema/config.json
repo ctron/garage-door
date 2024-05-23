@@ -7,8 +7,8 @@
   ],
   "properties": {
     "issuers": {
-      "type": "array",
-      "items": {
+      "type": "object",
+      "additionalProperties": {
         "$ref": "#/definitions/Issuer"
       }
     }
@@ -81,7 +81,7 @@
       "type": "object",
       "required": [
         "clients",
-        "name"
+        "scopes"
       ],
       "properties": {
         "clients": {
@@ -90,8 +90,11 @@
             "$ref": "#/definitions/Client"
           }
         },
-        "name": {
-          "type": "string"
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },

@@ -12,7 +12,7 @@ use std::{fmt::Formatter, str::FromStr};
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-struct RedirectUrlOrString(pub RedirectUrl);
+pub(super) struct RedirectUrlOrString(pub RedirectUrl);
 
 impl Serialize for RedirectUrlOrString {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

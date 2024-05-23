@@ -50,6 +50,7 @@ pub enum Client {
     Public {
         id: String,
         #[serde(deserialize_with = "redirect_url::or_string::deserialize_vec")]
+        #[schemars(with = "Vec<redirect_url::RedirectUrlOrString>")]
         redirect_urls: Vec<RedirectUrl>,
         #[serde(default = "default::default_scope")]
         default_scope: String,

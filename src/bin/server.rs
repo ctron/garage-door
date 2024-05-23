@@ -6,7 +6,6 @@ use std::net::{IpAddr, Ipv6Addr};
 use std::path::PathBuf;
 use std::process::ExitCode;
 use tracing_subscriber::{filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt};
-use url::Url;
 
 #[derive(Clone, Debug, clap::Parser)]
 pub struct Cli {
@@ -16,9 +15,9 @@ pub struct Cli {
     /// Address to bind to
     #[arg(short, long, default_value_t = Ipv6Addr::LOCALHOST.into())]
     pub bind: IpAddr,
-    /// Public URL
-    #[arg(short = 'u', long)]
-    pub public_url: Option<Url>,
+    /// Base URL
+    #[arg(short = 'B', long)]
+    pub base: Option<String>,
     /// Configuration file
     #[arg(short, long, default_value = "garage-door.yaml")]
     pub config: PathBuf,
@@ -57,11 +56,15 @@ async fn main() -> Result<ExitCode> {
     let mut server = Server::new();
     server.port(cli.port).bind(cli.bind);
 
+    if let Some(base) = &cli.base {
+        server.base(base);
+    }
+
     for (name, issuer) in config.issuers {
         server.add_issuer(name, issuer)?;
     }
 
-    server.run().await?.await?;
+    server.run().await?;
 
     Ok(ExitCode::SUCCESS)
 }
