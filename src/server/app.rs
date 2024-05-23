@@ -13,8 +13,12 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn new(base: Url, issuers: HashMap<String, Issuer>) -> Result<Self, IssueBuildError> {
-        let state = ApplicationState::new(issuers, base)?;
+    pub fn new(
+        base: Url,
+        path: Option<String>,
+        issuers: HashMap<String, Issuer>,
+    ) -> Result<Self, IssueBuildError> {
+        let state = ApplicationState::new(issuers, base, path)?;
         let state = web::Data::new(state);
 
         Ok(Self { state })

@@ -12,6 +12,3 @@ issuers:
           id: frontend
           redirectUrls:
             - http://localhost
-            - exact:
-                url: http://localhost
-                ignoreLocalhostPort: true

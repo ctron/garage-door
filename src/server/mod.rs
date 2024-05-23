@@ -6,6 +6,7 @@ use actix_web::{
     middleware::{Logger, NormalizePath},
     web, App, HttpServer,
 };
+use std::borrow::Cow;
 use std::{
     collections::{hash_map::Entry, HashMap},
     io,
@@ -95,13 +96,15 @@ impl Server {
         let listener = listener.into_std()?;
 
         let addr = listener.local_addr()?;
-        let mut base = Url::parse(&format!("http://{addr}"))?;
-        if let Some(path) = &self.base {
-            base = base.join(path)?;
-        }
-        log::info!("Listening on: {base}");
+        let public_base = Url::parse(&format!("http://{addr}"))?;
 
-        let app = Application::new(base, self.issuers)?;
+        let mut info_base = Cow::Borrowed(&public_base);
+        if let Some(path) = &self.base {
+            info_base = Cow::Owned(public_base.join(path)?);
+        }
+        log::info!("Listening on: {info_base}");
+
+        let app = Application::new(public_base, self.base.clone(), self.issuers)?;
 
         Ok(HttpServer::new(move || {
             App::new()

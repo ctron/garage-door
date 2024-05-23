@@ -1,14 +1,15 @@
-use crate::endpoints::Error;
-use crate::server::state::ApplicationState;
-use actix_web::dev::ConnectionInfo;
-use actix_web::web::Json;
-use actix_web::{get, post, web, HttpResponse, Responder};
+use crate::{endpoints::Error, server::state::ApplicationState};
+use actix_web::{
+    dev::ConnectionInfo,
+    get, post,
+    web::{self, Json},
+    HttpResponse, Responder,
+};
 use oxide_auth::endpoint::{
     ClientCredentialsFlow, Endpoint, OwnerConsent, OwnerSolicitor, QueryParameter, Solicitation,
 };
 use oxide_auth::frontends::simple::endpoint::{ErrorInto, FnSolicitor, Generic};
 use oxide_auth_actix::{Authorize, OAuthOperation, OAuthRequest, OAuthResponse, Token, WebError};
-use url::Url;
 
 #[get("/{issuer}/.well-known/openid-configuration")]
 pub async fn discovery(
@@ -18,7 +19,10 @@ pub async fn discovery(
 ) -> Result<impl Responder, Error> {
     let name = path.into_inner();
 
-    let base = Url::parse(&format!("{}://{}/{name}", conn.scheme(), conn.host()))?;
+    let mut base = server.build_base(&conn)?;
+    base.path_segments_mut()
+        .map_err(|()| url::ParseError::RelativeUrlWithCannotBeABaseBase)?
+        .push(&name);
 
     let issuer = server
         .issuer(&name)
