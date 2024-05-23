@@ -4,7 +4,7 @@ pub mod state;
 use crate::{issuer::IssueBuildError, issuer::Issuer, server::app::Application};
 use actix_web::{
     middleware::{Logger, NormalizePath},
-    App, HttpServer,
+    web, App, HttpServer,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -36,6 +36,8 @@ pub struct Server {
     port: u16,
     bind: IpAddr,
 
+    base: Option<String>,
+
     issuers: HashMap<String, Issuer>,
 }
 
@@ -51,6 +53,7 @@ impl Server {
             port: 8080,
             bind: IpAddr::V6(Ipv6Addr::LOCALHOST),
             issuers: Default::default(),
+            base: None,
         }
     }
 
@@ -87,7 +90,10 @@ impl Server {
         let listener = listener.into_std()?;
 
         let addr = listener.local_addr()?;
-        let base = Url::parse(&format!("http://{addr}"))?;
+        let mut base = Url::parse(&format!("http://{addr}"))?;
+        if let Some(path) = &self.base {
+            base = base.join(path)?;
+        }
         log::info!("Listening on: {base}");
 
         let app = Application::new(base, self.issuers)?;
@@ -96,7 +102,12 @@ impl Server {
             App::new()
                 .wrap(NormalizePath::trim())
                 .wrap(Logger::default())
-                .configure(|svc| app.configure(svc))
+                .configure(|svc| match &self.base {
+                    Some(path) => {
+                        web::scope(&format!("/{path}")).configure(|svc| app.configure(svc));
+                    }
+                    None => app.configure(svc),
+                })
         })
         .listen(listener)?
         .run())
