@@ -4,6 +4,7 @@ issuers:
   chickens:
     scopes:
       - openid
+      - foo
     clients:
       - confidential:
           id: client-id

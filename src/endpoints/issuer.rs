@@ -1,4 +1,7 @@
-use crate::{endpoints::Error, issuer::JwtIdGenerator, server::state::ApplicationState};
+use crate::{
+    endpoints::Error, extensions::ConnectionInformation, issuer::JwtIdGenerator,
+    server::state::ApplicationState,
+};
 use actix_web::{
     dev::ConnectionInfo,
     get, post,
@@ -7,13 +10,19 @@ use actix_web::{
 };
 use biscuit::jws::Secret;
 use openidconnect::IssuerUrl;
-use oxide_auth::endpoint::{
-    ClientCredentialsFlow, Endpoint, OwnerConsent, OwnerSolicitor, QueryParameter, Solicitation,
-    WebResponse,
+use oxide_auth::{
+    endpoint::{
+        ClientCredentialsFlow, Endpoint, OwnerConsent, OwnerSolicitor, QueryParameter,
+        Solicitation, WebResponse,
+    },
+    frontends::simple::{
+        endpoint::{ErrorInto, FnSolicitor, Generic},
+        extensions::{AddonList, Extended},
+    },
 };
-use oxide_auth::frontends::simple::endpoint::{ErrorInto, FnSolicitor, Generic};
 use oxide_auth_actix::{Authorize, OAuthOperation, OAuthRequest, OAuthResponse, Token, WebError};
 use serde_json::Value;
+use std::sync::Arc;
 use url::Url;
 
 #[get("/{issuer}/.well-known/openid-configuration")]
@@ -129,11 +138,14 @@ pub async fn token(
 
     Ok(match grant_type.as_deref() {
         Some("client_credentials") => {
-            let mut flow = ClientCredentialsFlow::prepare(with_solicitor(
-                endpoint,
-                FnSolicitor(move |_: &mut OAuthRequest, solicitation: Solicitation| {
-                    OwnerConsent::Authorized(solicitation.pre_grant().client_id.clone())
-                }),
+            let mut flow = ClientCredentialsFlow::prepare(with_conninfo(
+                with_solicitor(
+                    endpoint,
+                    FnSolicitor(move |_: &mut OAuthRequest, solicitation: Solicitation| {
+                        OwnerConsent::Authorized(solicitation.pre_grant().client_id.clone())
+                    }),
+                ),
+                conn.clone(),
             ))
             .map_err(WebError::from)?;
             flow.allow_credentials_in_body(true);
@@ -141,7 +153,7 @@ pub async fn token(
         }
 
         _ => {
-            let resp = Token(req).run(endpoint)?;
+            let resp = Token(req).run(with_conninfo(endpoint, conn.clone()))?;
             amend_id_token(resp, &server, &conn, &name)?
         }
     })
@@ -178,19 +190,35 @@ fn amend_id_token(
     Ok(resp)
 }
 
+pub fn with_conninfo<Inner>(inner: Inner, conn: ConnectionInfo) -> Extended<Inner, AddonList> {
+    log::debug!("Adding conninfo: {conn:?}");
+    // let mut addons = endpoint.addons.clone();
+
+    let conn = Arc::new(ConnectionInformation(conn));
+
+    let mut addons = AddonList::new();
+    addons.push_access_token(conn.clone());
+    addons.push_client_credentials(conn);
+
+    Extended::extend_with(inner, addons)
+}
+
 pub fn with_solicitor<S>(
-    endpoint: &mut crate::issuer::Endpoint,
+    endpoint: &mut Extended<crate::issuer::Endpoint, AddonList>,
     solicitor: S,
 ) -> impl Endpoint<OAuthRequest, Error = WebError> + '_
 where
     S: OwnerSolicitor<OAuthRequest> + 'static,
 {
-    ErrorInto::new(Generic {
-        authorizer: &mut endpoint.authorizer,
-        registrar: &mut endpoint.registrar,
-        issuer: &mut endpoint.issuer,
-        solicitor,
-        scopes: &mut endpoint.scopes,
-        response: OAuthResponse::ok,
+    ErrorInto::new(Extended {
+        inner: Generic {
+            authorizer: &mut endpoint.inner.authorizer,
+            registrar: &mut endpoint.inner.registrar,
+            issuer: &mut endpoint.inner.issuer,
+            solicitor,
+            scopes: &mut endpoint.inner.scopes,
+            response: OAuthResponse::ok,
+        },
+        addons: &mut endpoint.addons,
     })
 }

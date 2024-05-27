@@ -53,6 +53,8 @@ async fn main() -> Result<ExitCode> {
 
     let config: Configuration = serde_yaml::from_reader(std::fs::File::open(&cli.config)?)?;
 
+    log::debug!("Read config file");
+
     let mut server = Server::new();
     server.port(cli.port).bind(cli.bind);
 

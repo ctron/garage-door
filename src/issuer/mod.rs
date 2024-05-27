@@ -17,7 +17,10 @@ use openidconnect::{
     SubjectIdentifier, TokenUrl, UserInfoUrl,
 };
 use oxide_auth::{
-    frontends::simple::endpoint::{Generic, Vacant},
+    frontends::simple::{
+        endpoint::{Generic, Vacant},
+        extensions::{AddonList, Extended},
+    },
     primitives::{
         prelude::{Client as OxideClient, *},
         registrar::RegisteredUrl,
@@ -146,17 +149,21 @@ impl Issuer {
         // FIXME: keys
         let secret = Secret::None;
 
-        let endpoint = Endpoint {
-            registrar: registrar.into_iter().collect(),
-            authorizer: AuthMap::new(RandomGenerator::new(16)),
-            issuer: TokenMap::new(JwtAccessGenerator::new(base.to_string(), secret)),
-            solicitor: Vacant,
-            scopes: self
-                .scopes
-                .into_iter()
-                .map(|scope| scope.parse())
-                .collect::<Result<Vec<_>, _>>()?,
-            response: OAuthResponse::ok,
+        let addons = AddonList::new();
+        let endpoint = Extended {
+            inner: Endpoint {
+                registrar: registrar.into_iter().collect(),
+                authorizer: AuthMap::new(RandomGenerator::new(16)),
+                issuer: TokenMap::new(JwtAccessGenerator::new(base.path().into(), secret)),
+                solicitor: Vacant,
+                scopes: self
+                    .scopes
+                    .into_iter()
+                    .map(|scope| scope.parse())
+                    .collect::<Result<Vec<_>, _>>()?,
+                response: OAuthResponse::ok,
+            },
+            addons,
         };
 
         Ok(IssuerState {
@@ -183,6 +190,7 @@ impl IssuerState {
             .read()
             .await
             .endpoint
+            .inner
             .scopes
             .iter()
             .map(|scope| oauth2::Scope::new(scope.to_string()))
@@ -244,7 +252,7 @@ impl IssuerState {
 impl IssuerState {}
 
 pub struct InnerState {
-    pub endpoint: Endpoint,
+    pub endpoint: Extended<Endpoint, AddonList>,
 }
 
 #[cfg(test)]

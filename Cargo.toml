@@ -53,4 +53,4 @@ required-features = ["server"]
 
 [patch.crates-io]
 #oxide-auth = { path = "../oxide-auth/oxide-auth" }
-#oxide-auth = { git = "https://github.com/ctron/oxide-auth", rev = "cdf46ddb3d2077f414d672a5c5c6197cb88c610d" }
+oxide-auth = { git = "https://github.com/ctron/oxide-auth", rev = "cd0c79c48a702ea6bb0b05e95e9eddcba8f6c77f" }

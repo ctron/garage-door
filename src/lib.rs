@@ -1,3 +1,4 @@
+mod extensions;
 mod oidc;
 
 pub mod config;
