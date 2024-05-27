@@ -16,6 +16,8 @@ pub enum Error {
     Serde(#[from] serde_json::Error),
     #[error(transparent)]
     Oxide(#[from] WebError),
+    #[error("generic error: {0}")]
+    Generic(String),
 }
 
 #[derive(Serialize)]
@@ -44,6 +46,7 @@ impl ResponseError for Error {
 
 #[get("")]
 pub async fn index(app: web::Data<ApplicationState>) -> impl Responder {
+    #[allow(clippy::format_collect)]
     let issuers = app
         .issuers()
         .into_iter()

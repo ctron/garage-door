@@ -19,8 +19,13 @@ impl Serialize for RedirectUrlOrString {
     where
         S: Serializer,
     {
-        // TODO: we could do better and try to use a string if that's sufficient
-        self.0.serialize(serializer)
+        match &self.0 {
+            RedirectUrl::Exact {
+                url,
+                ignore_localhost_port: false,
+            } => serializer.serialize_str(url),
+            v => v.serialize(serializer),
+        }
     }
 }
 
@@ -34,7 +39,7 @@ impl<'de> Deserialize<'de> for RedirectUrlOrString {
             type Value = RedirectUrlOrString;
 
             fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
-                formatter.write_str("string of RedirectUrl struct")
+                formatter.write_str("string or RedirectUrl struct")
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>

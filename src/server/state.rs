@@ -18,7 +18,7 @@ impl ApplicationState {
         base_path: Option<String>,
     ) -> Result<Self, IssueBuildError> {
         let base = match &base_path {
-            Some(base_path) => public_base.join(&base_path)?,
+            Some(base_path) => public_base.join(base_path)?,
             None => public_base,
         };
 

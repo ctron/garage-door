@@ -30,8 +30,8 @@ impl Application {
             .service(endpoints::issuer::index)
             .service(endpoints::issuer::discovery)
             .service(endpoints::issuer::auth_get)
-            .service(endpoints::issuer::auth_post)
             .service(endpoints::issuer::keys)
-            .service(endpoints::issuer::token);
+            .service(endpoints::issuer::token)
+            .service(endpoints::issuer::userinfo_get);
     }
 }

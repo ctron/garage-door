@@ -2,17 +2,19 @@ mod redirect_url;
 mod token;
 
 pub use redirect_url::*;
+pub use token::*;
 
-use crate::{endpoints::Error, issuer::token::JwtGenerator};
+use crate::endpoints::Error;
 use biscuit::jws::Secret;
 use hide::Hide;
 use openidconnect::core::{
     CoreClientAuthMethod, CoreGrantType, CoreJsonWebKeySet, CoreResponseType,
-    CoreSubjectIdentifierType,
+    CoreSubjectIdentifierType, CoreUserInfoClaims,
 };
 use openidconnect::{
-    AuthUrl, EmptyAdditionalProviderMetadata, IssuerUrl, JsonWebKeySetUrl, LogoutProviderMetadata,
-    ProviderMetadataWithLogout, ResponseTypes, TokenUrl,
+    AuthUrl, EmptyAdditionalClaims, EmptyAdditionalProviderMetadata, IssuerUrl, JsonWebKeySetUrl,
+    LogoutProviderMetadata, ProviderMetadataWithLogout, ResponseTypes, StandardClaims,
+    SubjectIdentifier, TokenUrl, UserInfoUrl,
 };
 use oxide_auth::{
     frontends::simple::endpoint::{Generic, Vacant},
@@ -30,7 +32,7 @@ use url::Url;
 pub type Endpoint = Generic<
     ClientMap,
     AuthMap<RandomGenerator>,
-    TokenMap<JwtGenerator>,
+    TokenMap<JwtAccessGenerator>,
     Vacant,
     Vec<Scope>,
     fn() -> OAuthResponse,
@@ -147,7 +149,7 @@ impl Issuer {
         let endpoint = Endpoint {
             registrar: registrar.into_iter().collect(),
             authorizer: AuthMap::new(RandomGenerator::new(16)),
-            issuer: TokenMap::new(JwtGenerator::new(base.to_string(), secret)),
+            issuer: TokenMap::new(JwtAccessGenerator::new(base.to_string(), secret)),
             solicitor: Vacant,
             scopes: self
                 .scopes
@@ -228,7 +230,14 @@ impl IssuerState {
         .set_grant_types_supported(Some(vec![
             CoreGrantType::ClientCredentials,
             CoreGrantType::AuthorizationCode,
-        ])))
+        ]))
+        .set_userinfo_endpoint(Some(UserInfoUrl::from_url(build("userinfo")?))))
+    }
+
+    pub fn userinfo(&self) -> CoreUserInfoClaims {
+        let subject = SubjectIdentifier::new("Marvin".into());
+        let claims = StandardClaims::new(subject);
+        CoreUserInfoClaims::new(claims, EmptyAdditionalClaims::default())
     }
 }
 

@@ -1633,8 +1633,9 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "oxide-auth"
-version = "0.5.4"
-source = "git+https://github.com/ctron/oxide-auth?rev=cdf46ddb3d2077f414d672a5c5c6197cb88c610d#cdf46ddb3d2077f414d672a5c5c6197cb88c610d"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6f70b1c75dcec418c1ff679afcb0bc4743e3321cb5bdd49ce156e9d9bd319f2"
 dependencies = [
  "base64 0.21.7",
  "chrono",
@@ -1653,9 +1654,9 @@ dependencies = [
 
 [[package]]
 name = "oxide-auth-actix"
-version = "0.2.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75200b6bf2de6b7159677e27d7e015c79f32ebc7f700a683589e7c110d14a01d"
+checksum = "f0acba3158bbfc2b165b3969d53caffe2c03d9ce7a2ff5fcd110be969ad6d6ba"
 dependencies = [
  "actix",
  "actix-web",

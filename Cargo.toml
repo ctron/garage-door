@@ -26,15 +26,15 @@ openidconnect = { version = "4.0.0-alpha.1", default-features = false }
 schemars = { version = "0.8", features = ["derive", "url"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml = "0.8.26"
+serde_yaml = "~0.8.26"
 strum = { version = "0.26.2", features = ["derive"] }
 thiserror = "1"
 tokio = "1"
 tracing = "0.1.40"
 url = "2.5.0"
 
-oxide-auth = "0.5.4"
-oxide-auth-actix = "0.2"
+oxide-auth = "0.6.0"
+oxide-auth-actix = "0.3.0"
 
 clap = { version = "4.5.4", features = ["derive", "env"], optional = true }
 tracing-subscriber = { version = "0.3.18", features = ["tracing-log", "ansi", "env-filter"], optional = true }
@@ -53,4 +53,4 @@ required-features = ["server"]
 
 [patch.crates-io]
 #oxide-auth = { path = "../oxide-auth/oxide-auth" }
-oxide-auth = { git = "https://github.com/ctron/oxide-auth", rev = "cdf46ddb3d2077f414d672a5c5c6197cb88c610d" }
+#oxide-auth = { git = "https://github.com/ctron/oxide-auth", rev = "cdf46ddb3d2077f414d672a5c5c6197cb88c610d" }
