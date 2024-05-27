@@ -111,13 +111,10 @@ impl Server {
             public_base.clone()
         };
         log::info!("Listening on: {announce_base}");
-        if let Some(f) = self.announce_url.take() {
-            f(announce_base)
-        }
 
         let app = Application::new(public_base, self.base.clone(), self.issuers)?;
 
-        Ok(HttpServer::new(move || {
+        let http = HttpServer::new(move || {
             App::new()
                 .wrap(Cors::permissive())
                 .wrap(NormalizePath::trim())
@@ -130,7 +127,12 @@ impl Server {
                     None => app.configure(svc),
                 })
         })
-        .listen(listener)?
-        .run())
+        .listen(listener)?;
+
+        if let Some(f) = self.announce_url.take() {
+            f(announce_base)
+        }
+
+        Ok(http.run())
     }
 }
