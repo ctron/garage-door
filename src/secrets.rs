@@ -1,4 +1,5 @@
 use biscuit::{jwa::SignatureAlgorithm, jws::Secret};
+use openidconnect::core::CoreJwsSigningAlgorithm;
 use openidconnect::{core::CoreJsonWebKey, JsonWebKey};
 
 #[derive(Clone)]
@@ -25,6 +26,10 @@ impl Key {
 
     pub fn algorithm(&self) -> SignatureAlgorithm {
         SignatureAlgorithm::HS256
+    }
+
+    pub(crate) fn core_alg(&self) -> CoreJwsSigningAlgorithm {
+        CoreJwsSigningAlgorithm::HmacSha256
     }
 
     pub fn key(&self) -> CoreJsonWebKey {

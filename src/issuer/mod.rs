@@ -11,9 +11,9 @@ use openidconnect::{
         CoreClientAuthMethod, CoreGrantType, CoreJsonWebKeySet, CoreResponseType,
         CoreSubjectIdentifierType, CoreUserInfoClaims,
     },
-    AuthUrl, EmptyAdditionalClaims, EmptyAdditionalProviderMetadata, IssuerUrl, JsonWebKeySetUrl,
-    LogoutProviderMetadata, ProviderMetadataWithLogout, ResponseTypes, StandardClaims,
-    SubjectIdentifier, TokenUrl, UserInfoUrl,
+    AuthUrl, EmptyAdditionalClaims, EmptyAdditionalProviderMetadata, EndSessionUrl, IssuerUrl,
+    JsonWebKeySetUrl, LogoutProviderMetadata, ProviderMetadataWithLogout, ResponseTypes,
+    StandardClaims, SubjectIdentifier, TokenUrl, UserInfoUrl,
 };
 use oxide_auth::{
     frontends::simple::{
@@ -217,9 +217,9 @@ impl IssuerState {
         let response_types_supported: Vec<_> =
             vec![ResponseTypes::new(vec![CoreResponseType::Token])];
         let subject_types_supported = vec![CoreSubjectIdentifierType::Public];
-        let id_token_signing_alg_values_supported = vec![]; // CoreJwsSigningAlgorithm::HmacSha256
+        let id_token_signing_alg_values_supported = vec![self.key.core_alg()];
         let additional_metadata = LogoutProviderMetadata {
-            end_session_endpoint: None,
+            end_session_endpoint: Some(EndSessionUrl::from_url(build("logout")?)),
             additional_metadata: EmptyAdditionalProviderMetadata::default(),
         };
 

@@ -1,29 +1,20 @@
-use crate::{
-    endpoints::Error,
-    extensions::ConnectionInformation,
-    issuer::{IssuerState, JwtIdGenerator},
-    server::state::ApplicationState,
-};
+mod helper;
+
+use crate::{endpoints::Error, server::state::ApplicationState};
+use actix_web::http::header;
 use actix_web::{
     dev::ConnectionInfo,
     get, post,
     web::{self, Json},
     HttpResponse, Responder,
 };
-use openidconnect::IssuerUrl;
+use helper::*;
 use oxide_auth::{
-    endpoint::{
-        ClientCredentialsFlow, Endpoint, OwnerConsent, OwnerSolicitor, QueryParameter,
-        Solicitation, WebResponse,
-    },
-    frontends::simple::{
-        endpoint::{ErrorInto, FnSolicitor, Generic},
-        extensions::{AddonList, Extended},
-    },
+    endpoint::{ClientCredentialsFlow, OwnerConsent, QueryParameter, Solicitation},
+    frontends::simple::endpoint::FnSolicitor,
 };
-use oxide_auth_actix::{Authorize, OAuthOperation, OAuthRequest, OAuthResponse, Token, WebError};
-use serde_json::Value;
-use std::sync::Arc;
+use oxide_auth_actix::{Authorize, OAuthOperation, OAuthRequest, Token, WebError};
+use serde::Deserialize;
 use url::Url;
 
 #[get("/{issuer}/.well-known/openid-configuration")]
@@ -34,7 +25,7 @@ pub async fn discovery(
 ) -> Result<impl Responder, Error> {
     let name = path.into_inner();
 
-    let base = issuer_url(&server, &conn, &name)?;
+    let base = issuer_url(&server, &conn, &name, [])?;
 
     let issuer = server
         .issuer(&name)
@@ -47,11 +38,22 @@ fn issuer_url(
     server: &ApplicationState,
     conn: &ConnectionInfo,
     issuer: &str,
+    path: impl IntoIterator<Item = &'static str>,
 ) -> Result<Url, Error> {
     let mut url = server.build_base(conn)?;
-    url.path_segments_mut()
-        .map_err(|()| url::ParseError::RelativeUrlWithCannotBeABaseBase)?
-        .push(issuer);
+
+    {
+        let mut p = url
+            .path_segments_mut()
+            .map_err(|()| url::ParseError::RelativeUrlWithCannotBeABaseBase)?;
+
+        p.push(issuer);
+
+        for seg in path {
+            p.push(seg);
+        }
+    }
+
     Ok(url)
 }
 
@@ -164,66 +166,29 @@ pub async fn token(
     })
 }
 
-/// take a token response and add an id token
-fn amend_id_token(
-    mut resp: OAuthResponse,
-    server: &ApplicationState,
-    issuer: &IssuerState,
-    conn: &ConnectionInfo,
-    issuer_name: &str,
-) -> Result<OAuthResponse, Error> {
-    let Some(Ok(mut value)) = resp
-        .get_body()
-        .map(|body| serde_json::from_str::<Value>(&body))
-    else {
-        return Ok(resp);
-    };
-
-    let Some(_access_token) = value["access_token"].as_str() else {
-        return Ok(resp);
-    };
-
-    let base = issuer_url(server, conn, issuer_name)?;
-
-    let id_token = JwtIdGenerator::new(issuer.key.clone(), IssuerUrl::from_url(base))
-        .create()
-        .map_err(|err| Error::Generic(err.to_string()))?;
-
-    value["id_token"] = serde_json::to_value(id_token)?;
-
-    resp.body_json(&serde_json::to_string(&value)?)?;
-
-    Ok(resp)
+#[derive(Clone, Debug, Deserialize)]
+struct LogoutQuery {
+    pub post_logout_redirect_uri: Option<String>,
 }
 
-pub fn with_conninfo<Inner>(inner: Inner, conn: ConnectionInfo) -> Extended<Inner, AddonList> {
-    log::debug!("Adding conninfo: {conn:?}");
+#[get("/{issuer}/logout")]
+pub async fn logout(
+    server: web::Data<ApplicationState>,
+    path: web::Path<String>,
+    web::Query(LogoutQuery {
+        post_logout_redirect_uri,
+    }): web::Query<LogoutQuery>,
+) -> Result<impl Responder, Error> {
+    let name = path.into_inner();
 
-    let conn = Arc::new(ConnectionInformation(conn));
+    let _issuer = server
+        .issuer(&name)
+        .ok_or_else(|| Error::UnknownIssuer(name))?;
 
-    let mut addons = AddonList::new();
-    addons.push_access_token(conn.clone());
-    addons.push_client_credentials(conn);
-
-    Extended::extend_with(inner, addons)
-}
-
-pub fn with_solicitor<S>(
-    endpoint: &mut Extended<crate::issuer::Endpoint, AddonList>,
-    solicitor: S,
-) -> impl Endpoint<OAuthRequest, Error = WebError> + '_
-where
-    S: OwnerSolicitor<OAuthRequest> + 'static,
-{
-    ErrorInto::new(Extended {
-        inner: Generic {
-            authorizer: &mut endpoint.inner.authorizer,
-            registrar: &mut endpoint.inner.registrar,
-            issuer: &mut endpoint.inner.issuer,
-            solicitor,
-            scopes: &mut endpoint.inner.scopes,
-            response: OAuthResponse::ok,
-        },
-        addons: &mut endpoint.addons,
-    })
+    match post_logout_redirect_uri {
+        Some(uri) => Ok(HttpResponse::TemporaryRedirect()
+            .append_header((header::LOCATION, uri))
+            .finish()),
+        None => Ok(HttpResponse::NoContent().finish()),
+    }
 }
