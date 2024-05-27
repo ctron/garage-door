@@ -1,6 +1,10 @@
 # Garage Door
 
-> A simple OIDC provider, for demo purposes
+[![crates.io](https://img.shields.io/crates/v/garage-door.svg)](https://crates.io/crates/garage-door)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/tag/ctron/garage-door?sort=semver)](https://github.com/ctron/garage-door/releases)
+[![CI](https://github.com/ctron/garage-door/actions/workflows/ci.yaml/badge.svg)](https://github.com/ctron/garage-door/actions/workflows/ci.yaml)
+
+> A simple OIDC provider, for demo purposes!
 
 ## Rationale
 
@@ -15,12 +19,12 @@ That's the itch, this project tries to be the scratch.
 Goals:
 
 * An OIDC provider which can be run stand-alone, serving a list of pre-configured users and clients
+* Allow embedding this into other applications.
 * Be useful out of the box
 * Follow "the spec"
 
 Stretch goals:
 
-* Allow embedding this into other applications.
 * Allow the interoperability with other server frameworks.
 
 Non-goals:
