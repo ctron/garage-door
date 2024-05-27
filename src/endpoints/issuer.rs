@@ -1,5 +1,7 @@
 use crate::{
-    endpoints::Error, extensions::ConnectionInformation, issuer::JwtIdGenerator,
+    endpoints::Error,
+    extensions::ConnectionInformation,
+    issuer::{IssuerState, JwtIdGenerator},
     server::state::ApplicationState,
 };
 use actix_web::{
@@ -8,7 +10,6 @@ use actix_web::{
     web::{self, Json},
     HttpResponse, Responder,
 };
-use biscuit::jws::Secret;
 use openidconnect::IssuerUrl;
 use oxide_auth::{
     endpoint::{
@@ -71,6 +72,7 @@ pub async fn index(
 #[get("/{issuer}/auth")]
 pub async fn auth_get(
     server: web::Data<ApplicationState>,
+    conn: ConnectionInfo,
     path: web::Path<String>,
     req: OAuthRequest,
 ) -> Result<impl Responder, Error> {
@@ -82,11 +84,14 @@ pub async fn auth_get(
 
     let endpoint = &mut issuer.inner.write().await.endpoint;
 
-    Ok(Authorize(req).run(with_solicitor(
-        endpoint,
-        FnSolicitor(move |_: &mut OAuthRequest, _: Solicitation| {
-            OwnerConsent::Authorized("Marvin".into())
-        }),
+    Ok(Authorize(req).run(with_conninfo(
+        with_solicitor(
+            endpoint,
+            FnSolicitor(move |_: &mut OAuthRequest, _: Solicitation| {
+                OwnerConsent::Authorized("Marvin".into())
+            }),
+        ),
+        conn,
     )))
 }
 
@@ -154,7 +159,7 @@ pub async fn token(
 
         _ => {
             let resp = Token(req).run(with_conninfo(endpoint, conn.clone()))?;
-            amend_id_token(resp, &server, &conn, &name)?
+            amend_id_token(resp, &server, &issuer, &conn, &name)?
         }
     })
 }
@@ -163,8 +168,9 @@ pub async fn token(
 fn amend_id_token(
     mut resp: OAuthResponse,
     server: &ApplicationState,
+    issuer: &IssuerState,
     conn: &ConnectionInfo,
-    issuer: &str,
+    issuer_name: &str,
 ) -> Result<OAuthResponse, Error> {
     let Some(Ok(mut value)) = resp
         .get_body()
@@ -177,9 +183,9 @@ fn amend_id_token(
         return Ok(resp);
     };
 
-    let base = issuer_url(server, conn, issuer)?;
+    let base = issuer_url(server, conn, issuer_name)?;
 
-    let id_token = JwtIdGenerator::new(Secret::None, IssuerUrl::from_url(base))
+    let id_token = JwtIdGenerator::new(issuer.key.clone(), IssuerUrl::from_url(base))
         .create()
         .map_err(|err| Error::Generic(err.to_string()))?;
 
@@ -192,7 +198,6 @@ fn amend_id_token(
 
 pub fn with_conninfo<Inner>(inner: Inner, conn: ConnectionInfo) -> Extended<Inner, AddonList> {
     log::debug!("Adding conninfo: {conn:?}");
-    // let mut addons = endpoint.addons.clone();
 
     let conn = Arc::new(ConnectionInformation(conn));
 

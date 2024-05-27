@@ -37,7 +37,10 @@ impl ApplicationState {
             issuers: issuers
                 .into_iter()
                 .map(|(name, issuer)| {
-                    let base = base.join(&name)?;
+                    let mut base = base.clone();
+                    base.path_segments_mut()
+                        .map_err(|()| url::ParseError::RelativeUrlWithCannotBeABaseBase)?
+                        .push(&name);
                     let state = issuer.build(base)?;
                     Ok::<_, IssueBuildError>((name, state))
                 })

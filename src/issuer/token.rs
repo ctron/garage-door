@@ -1,9 +1,7 @@
-use crate::extensions::ConnectionInformation;
-use crate::oidc::AccessTokenClaims;
+use crate::{extensions::ConnectionInformation, oidc::AccessTokenClaims, secrets::Key};
 use anyhow::bail;
 use biscuit::{
-    jwa::SignatureAlgorithm,
-    jws::{Compact, RegisteredHeader, Secret},
+    jws::{Compact, RegisteredHeader},
     ClaimsSet, CompactJson, CompactPart, RegisteredClaims, SingleOrMultiple, Timestamp,
 };
 use chrono::{Duration, Utc};
@@ -19,15 +17,12 @@ const AUD: &str = "some-audience";
 pub struct JwtAccessGenerator {
     /// The relative base of the issuer
     issuer_base: String,
-    secret: Secret,
+    key: Key,
 }
 
 impl JwtAccessGenerator {
-    pub fn new(issuer_base: String, secret: Secret) -> Self {
-        Self {
-            issuer_base,
-            secret,
-        }
+    pub fn new(issuer_base: String, key: Key) -> Self {
+        Self { issuer_base, key }
     }
 
     fn create(&self, grant: &Grant) -> Result<String, anyhow::Error> {
@@ -68,21 +63,21 @@ impl JwtAccessGenerator {
             },
         };
 
-        encode(&self.secret, expected_claims)
+        encode(&self.key, expected_claims)
     }
 }
 
-fn encode<T: CompactPart>(secret: &Secret, claims: T) -> Result<String, anyhow::Error> {
-    // FIXME: need to implement
+fn encode<T: CompactPart>(key: &Key, claims: T) -> Result<String, anyhow::Error> {
     let jwt = Compact::new_decoded(
         From::from(RegisteredHeader {
-            algorithm: SignatureAlgorithm::None,
+            algorithm: key.algorithm(),
+            key_id: Some(key.id().to_string()),
             ..Default::default()
         }),
         claims,
     );
 
-    Ok(jwt.into_encoded(secret)?.encoded()?.to_string())
+    Ok(jwt.into_encoded(&key.secret())?.encoded()?.to_string())
 }
 
 impl TagGrant for JwtAccessGenerator {
@@ -95,7 +90,7 @@ impl TagGrant for JwtAccessGenerator {
 
 pub struct JwtIdGenerator {
     issuer: IssuerUrl,
-    secret: Secret,
+    key: Key,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -104,8 +99,8 @@ struct CoreIdToken(CoreIdTokenClaims);
 impl CompactJson for CoreIdToken {}
 
 impl JwtIdGenerator {
-    pub fn new(secret: Secret, issuer: IssuerUrl) -> Self {
-        Self { secret, issuer }
+    pub fn new(key: Key, issuer: IssuerUrl) -> Self {
+        Self { key, issuer }
     }
 
     pub fn create(&self) -> Result<String, anyhow::Error> {
@@ -124,6 +119,6 @@ impl JwtIdGenerator {
             EmptyAdditionalClaims::default(),
         );
 
-        encode(&self.secret, CoreIdToken(claims))
+        encode(&self.key, CoreIdToken(claims))
     }
 }

@@ -1,5 +1,6 @@
 mod extensions;
 mod oidc;
+mod secrets;
 
 pub mod config;
 pub mod endpoints;

@@ -2,6 +2,7 @@ $schema: "../schema/config.json"
 
 issuers:
   chickens:
+    key:
     scopes:
       - openid
       - foo

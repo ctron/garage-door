@@ -4,14 +4,13 @@ mod token;
 pub use redirect_url::*;
 pub use token::*;
 
-use crate::endpoints::Error;
-use biscuit::jws::Secret;
+use crate::{endpoints::Error, secrets::Key};
 use hide::Hide;
-use openidconnect::core::{
-    CoreClientAuthMethod, CoreGrantType, CoreJsonWebKeySet, CoreResponseType,
-    CoreSubjectIdentifierType, CoreUserInfoClaims,
-};
 use openidconnect::{
+    core::{
+        CoreClientAuthMethod, CoreGrantType, CoreJsonWebKeySet, CoreResponseType,
+        CoreSubjectIdentifierType, CoreUserInfoClaims,
+    },
     AuthUrl, EmptyAdditionalClaims, EmptyAdditionalProviderMetadata, IssuerUrl, JsonWebKeySetUrl,
     LogoutProviderMetadata, ProviderMetadataWithLogout, ResponseTypes, StandardClaims,
     SubjectIdentifier, TokenUrl, UserInfoUrl,
@@ -88,13 +87,17 @@ pub enum IssueBuildError {
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+pub struct KeyConfig(String);
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 pub struct Issuer {
     pub scopes: Vec<String>,
     pub clients: Vec<Client>,
+    pub key: KeyConfig,
 }
 
 impl Issuer {
-    pub fn new<I, S>(scopes: I) -> anyhow::Result<Self>
+    pub fn new<I, S>(key: impl Into<String>, scopes: I) -> anyhow::Result<Self>
     where
         I: IntoIterator<Item = S>,
         S: Into<String>,
@@ -102,6 +105,7 @@ impl Issuer {
         Ok(Self {
             scopes: scopes.into_iter().map(|s| s.into()).collect(),
             clients: Default::default(),
+            key: KeyConfig(key.into()),
         })
     }
 
@@ -146,15 +150,14 @@ impl Issuer {
             }
         }
 
-        // FIXME: keys
-        let secret = Secret::None;
+        let key = Key::new("key1", self.key.0.into_bytes());
 
         let addons = AddonList::new();
         let endpoint = Extended {
             inner: Endpoint {
                 registrar: registrar.into_iter().collect(),
                 authorizer: AuthMap::new(RandomGenerator::new(16)),
-                issuer: TokenMap::new(JwtAccessGenerator::new(base.path().into(), secret)),
+                issuer: TokenMap::new(JwtAccessGenerator::new(base.path().into(), key.clone())),
                 solicitor: Vacant,
                 scopes: self
                     .scopes
@@ -167,6 +170,7 @@ impl Issuer {
         };
 
         Ok(IssuerState {
+            key,
             inner: Arc::new(RwLock::new(InnerState { endpoint })),
         })
     }
@@ -174,14 +178,13 @@ impl Issuer {
 
 #[derive(Clone)]
 pub struct IssuerState {
+    pub key: Key,
     pub inner: Arc<RwLock<InnerState>>,
 }
 
 impl IssuerState {
     pub fn keys(&self) -> Result<CoreJsonWebKeySet, Error> {
-        let keys = vec![];
-
-        Ok(CoreJsonWebKeySet::new(keys))
+        Ok(CoreJsonWebKeySet::new(vec![self.key.key()]))
     }
 
     pub async fn discovery(&self, base: Url) -> Result<ProviderMetadataWithLogout, Error> {
