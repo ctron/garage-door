@@ -41,6 +41,8 @@ pub struct Server {
     announce_url: Option<Box<dyn FnOnce(Url) + Send + Sync + 'static>>,
 
     issuers: HashMap<String, Issuer>,
+
+    workers: Option<usize>,
 }
 
 impl Default for Server {
@@ -57,6 +59,7 @@ impl Server {
             issuers: Default::default(),
             base: None,
             announce_url: None,
+            workers: None,
         }
     }
 
@@ -114,7 +117,7 @@ impl Server {
 
         let app = Application::new(public_base, self.base.clone(), self.issuers)?;
 
-        let http = HttpServer::new(move || {
+        let mut http = HttpServer::new(move || {
             App::new()
                 .wrap(Cors::permissive())
                 .wrap(NormalizePath::trim())
@@ -128,6 +131,10 @@ impl Server {
                 })
         })
         .listen(listener)?;
+
+        if let Some(workers) = self.workers {
+            http = http.workers(workers);
+        }
 
         if let Some(f) = self.announce_url.take() {
             f(announce_base)
