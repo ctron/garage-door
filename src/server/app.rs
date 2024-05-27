@@ -32,6 +32,7 @@ impl Application {
             .service(endpoints::issuer::auth_get)
             .service(endpoints::issuer::keys)
             .service(endpoints::issuer::token)
-            .service(endpoints::issuer::userinfo_get);
+            .service(endpoints::issuer::userinfo_get)
+            .service(endpoints::issuer::logout);
     }
 }
