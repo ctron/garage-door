@@ -33,7 +33,7 @@ tokio = "1"
 tracing = "0.1.40"
 url = "2.5.0"
 
-oxide-auth = "0.6.0"
+oxide-auth = "0.6.1"
 oxide-auth-actix = "0.3.0"
 
 clap = { version = "4.5.4", features = ["derive", "env"], optional = true }
@@ -53,4 +53,4 @@ required-features = ["server"]
 
 [patch.crates-io]
 #oxide-auth = { path = "../oxide-auth/oxide-auth" }
-oxide-auth = { git = "https://github.com/ctron/oxide-auth", rev = "cd0c79c48a702ea6bb0b05e95e9eddcba8f6c77f" }
+#oxide-auth = { git = "https://github.com/ctron/oxide-auth", rev = "cd0c79c48a702ea6bb0b05e95e9eddcba8f6c77f" }
