@@ -13,7 +13,7 @@ use oxide_auth::{
     endpoint::{ClientCredentialsFlow, OwnerConsent, QueryParameter, Solicitation},
     frontends::simple::endpoint::FnSolicitor,
 };
-use oxide_auth_actix::{Authorize, OAuthOperation, OAuthRequest, Token, WebError};
+use oxide_auth_actix::{Authorize, OAuthOperation, OAuthRequest, Refresh, Token, WebError};
 use serde::Deserialize;
 use url::Url;
 
@@ -126,6 +126,24 @@ pub async fn userinfo_get(
     Ok(Json(issuer.userinfo()))
 }
 
+#[post("/{issuer}/refresh")]
+pub async fn refresh(
+    server: web::Data<ApplicationState>,
+    conn: ConnectionInfo,
+    req: OAuthRequest,
+    path: web::Path<String>,
+) -> Result<impl Responder, Error> {
+    let name = path.into_inner();
+
+    let issuer = server
+        .issuer(&name)
+        .ok_or_else(|| Error::UnknownIssuer(name))?;
+
+    let endpoint = &mut issuer.inner.write().await.endpoint;
+
+    Ok(Refresh(req).run(with_conninfo(endpoint, conn.clone()))?)
+}
+
 #[post("/{issuer}/token")]
 pub async fn token(
     server: web::Data<ApplicationState>,
@@ -158,7 +176,7 @@ pub async fn token(
             flow.allow_credentials_in_body(true);
             flow.execute(req).map_err(WebError::from)?
         }
-
+        Some("refresh_token") => Refresh(req).run(with_conninfo(endpoint, conn.clone()))?,
         _ => {
             let resp = Token(req).run(with_conninfo(endpoint, conn.clone()))?;
             amend_id_token(resp, &server, &issuer, &conn, &name)?
