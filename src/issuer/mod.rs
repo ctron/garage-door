@@ -11,9 +11,10 @@ use openidconnect::{
         CoreClientAuthMethod, CoreGrantType, CoreJsonWebKeySet, CoreResponseType,
         CoreSubjectIdentifierType, CoreUserInfoClaims,
     },
-    AuthUrl, EmptyAdditionalClaims, EmptyAdditionalProviderMetadata, EndSessionUrl, IssuerUrl,
-    JsonWebKeySetUrl, LogoutProviderMetadata, ProviderMetadataWithLogout, ResponseTypes,
-    StandardClaims, SubjectIdentifier, TokenUrl, UserInfoUrl,
+    AuthUrl, EmptyAdditionalClaims, EmptyAdditionalProviderMetadata, EndSessionUrl,
+    EndUserUsername, IssuerUrl, JsonWebKeySetUrl, LogoutProviderMetadata,
+    ProviderMetadataWithLogout, ResponseTypes, StandardClaims, SubjectIdentifier, TokenUrl,
+    UserInfoUrl,
 };
 use oxide_auth::{
     frontends::simple::{
@@ -247,7 +248,8 @@ impl IssuerState {
 
     pub fn userinfo(&self) -> CoreUserInfoClaims {
         let subject = SubjectIdentifier::new("Marvin".into());
-        let claims = StandardClaims::new(subject);
+        let claims = StandardClaims::new(subject)
+            .set_preferred_username(Some(EndUserUsername::new("Marvin".into())));
         CoreUserInfoClaims::new(claims, EmptyAdditionalClaims::default())
     }
 }
