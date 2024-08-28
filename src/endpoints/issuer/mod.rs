@@ -111,9 +111,23 @@ pub async fn keys(
     Ok(Json(issuer.keys()?))
 }
 
-// FIXME: we need to post version as well
 #[get("/{issuer}/userinfo")]
 pub async fn userinfo_get(
+    server: web::Data<ApplicationState>,
+    path: web::Path<String>,
+) -> Result<impl Responder, Error> {
+    userinfo(server, path).await
+}
+
+#[post("/{issuer}/userinfo")]
+pub async fn userinfo_post(
+    server: web::Data<ApplicationState>,
+    path: web::Path<String>,
+) -> Result<impl Responder, Error> {
+    userinfo(server, path).await
+}
+
+async fn userinfo(
     server: web::Data<ApplicationState>,
     path: web::Path<String>,
 ) -> Result<impl Responder, Error> {
