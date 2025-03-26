@@ -30,7 +30,7 @@ strum = { version = "0.27.1", features = ["derive"] }
 thiserror = "2"
 tokio = "1"
 tracing = "0.1.40"
-url = "2.5.0"
+url = "2.5.4"
 
 oxide-auth = "0.6.1"
 oxide-auth-actix = "0.3.0"
