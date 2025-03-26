@@ -1,7 +1,7 @@
 [package]
 name = "garage-door"
-version = "0.1.1"
-edition = "2021"
+version = "0.2.0"
+edition = "2024"
 description = "A simple OIDC provider, for demo purposes"
 
 authors = ["Jens Reimann <ctron@dentrassi.de>"]
@@ -10,7 +10,7 @@ repository = "https://github.com/ctron/garage-door"
 categories = ["authentication", "web-programming"]
 keywords = ["oidc", "server", "issuer"]
 readme = "README.md"
-rust-version = "1.78"
+rust-version = "1.85"
 
 [dependencies]
 actix-web = "4"
@@ -26,8 +26,8 @@ openidconnect = { version = "4.0.0-alpha.1", default-features = false }
 schemars = { version = "0.8", features = ["derive", "url"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-strum = { version = "0.26.2", features = ["derive"] }
-thiserror = "1"
+strum = { version = "0.27.1", features = ["derive"] }
+thiserror = "2"
 tokio = "1"
 tracing = "0.1.40"
 url = "2.5.0"

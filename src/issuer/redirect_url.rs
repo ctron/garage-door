@@ -1,12 +1,12 @@
 use oxide_auth::primitives::registrar::{ExactUrl, IgnoreLocalPortUrl, RegisteredUrl};
 use schemars::{
-    gen::SchemaGenerator,
-    schema::{Schema, SchemaObject, SubschemaValidation},
     JsonSchema,
+    r#gen::SchemaGenerator,
+    schema::{Schema, SchemaObject, SubschemaValidation},
 };
 use serde::{
-    de::{self, Error, MapAccess},
     Deserialize, Deserializer, Serialize, Serializer,
+    de::{self, Error, MapAccess},
 };
 use std::{fmt::Formatter, str::FromStr};
 use url::Url;
@@ -74,16 +74,16 @@ impl JsonSchema for RedirectUrlOrString {
         "RedirectUrlOrString".to_string()
     }
 
-    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+    fn json_schema(r#gen: &mut SchemaGenerator) -> Schema {
         SchemaObject {
             subschemas: Some(Box::new(SubschemaValidation {
                 one_of: Some(vec![
                     {
-                        let mut schema: SchemaObject = <String>::json_schema(gen).into();
+                        let mut schema: SchemaObject = <String>::json_schema(r#gen).into();
                         schema.format = Some("uri".into());
                         schema.into()
                     },
-                    <RedirectUrl>::json_schema(gen),
+                    <RedirectUrl>::json_schema(r#gen),
                 ]),
                 ..Default::default()
             })),

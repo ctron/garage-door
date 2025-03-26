@@ -3,17 +3,17 @@ mod helper;
 use crate::{endpoints::Error, server::state::ApplicationState};
 use actix_web::http::header;
 use actix_web::{
+    HttpResponse, Responder,
     dev::ConnectionInfo,
     get, post,
     web::{self, Json},
-    HttpResponse, Responder,
 };
 use helper::*;
 use oxide_auth::{
     endpoint::{ClientCredentialsFlow, OwnerConsent, QueryParameter, Solicitation},
     frontends::simple::endpoint::FnSolicitor,
 };
-use oxide_auth_actix::{Authorize, OAuthOperation, OAuthRequest, Refresh, Token, WebError};
+use oxide_auth_actix::{Authorize, OAuthOperation, OAuthRequest, Refresh, Token};
 use serde::Deserialize;
 use url::Url;
 
@@ -27,9 +27,7 @@ pub async fn discovery(
 
     let base = issuer_url(&server, &conn, &name, [])?;
 
-    let issuer = server
-        .issuer(&name)
-        .ok_or_else(|| Error::UnknownIssuer(name))?;
+    let issuer = server.issuer(&name).ok_or(Error::UnknownIssuer(name))?;
 
     Ok(HttpResponse::Ok().json(issuer.discovery(base).await?))
 }
@@ -80,9 +78,7 @@ pub async fn auth_get(
 ) -> Result<impl Responder, Error> {
     let name = path.into_inner();
 
-    let issuer = server
-        .issuer(&name)
-        .ok_or_else(|| Error::UnknownIssuer(name))?;
+    let issuer = server.issuer(&name).ok_or(Error::UnknownIssuer(name))?;
 
     let endpoint = &mut issuer.inner.write().await.endpoint;
 
@@ -104,9 +100,7 @@ pub async fn keys(
 ) -> Result<impl Responder, Error> {
     let name = path.into_inner();
 
-    let issuer = server
-        .issuer(&name)
-        .ok_or_else(|| Error::UnknownIssuer(name))?;
+    let issuer = server.issuer(&name).ok_or(Error::UnknownIssuer(name))?;
 
     Ok(Json(issuer.keys()?))
 }
@@ -133,9 +127,7 @@ async fn userinfo(
 ) -> Result<impl Responder, Error> {
     let name = path.into_inner();
 
-    let issuer = server
-        .issuer(&name)
-        .ok_or_else(|| Error::UnknownIssuer(name))?;
+    let issuer = server.issuer(&name).ok_or(Error::UnknownIssuer(name))?;
 
     Ok(Json(issuer.userinfo()))
 }
@@ -149,9 +141,7 @@ pub async fn refresh(
 ) -> Result<impl Responder, Error> {
     let name = path.into_inner();
 
-    let issuer = server
-        .issuer(&name)
-        .ok_or_else(|| Error::UnknownIssuer(name))?;
+    let issuer = server.issuer(&name).ok_or(Error::UnknownIssuer(name))?;
 
     let endpoint = &mut issuer.inner.write().await.endpoint;
 
@@ -185,10 +175,9 @@ pub async fn token(
                     }),
                 ),
                 conn.clone(),
-            ))
-            .map_err(WebError::from)?;
+            ))?;
             flow.allow_credentials_in_body(true);
-            flow.execute(req).map_err(WebError::from)?
+            flow.execute(req)?
         }
         Some("refresh_token") => Refresh(req).run(with_conninfo(endpoint, conn.clone()))?,
         _ => {
@@ -213,9 +202,7 @@ pub async fn logout(
 ) -> Result<impl Responder, Error> {
     let name = path.into_inner();
 
-    let _issuer = server
-        .issuer(&name)
-        .ok_or_else(|| Error::UnknownIssuer(name))?;
+    let _issuer = server.issuer(&name).ok_or(Error::UnknownIssuer(name))?;
 
     match post_logout_redirect_uri {
         Some(uri) => Ok(HttpResponse::TemporaryRedirect()
