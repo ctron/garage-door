@@ -1,6 +1,6 @@
 use biscuit::{jwa::SignatureAlgorithm, jws::Secret};
 use openidconnect::core::CoreJwsSigningAlgorithm;
-use openidconnect::{core::CoreJsonWebKey, JsonWebKey};
+use openidconnect::{JsonWebKey, core::CoreJsonWebKey};
 
 #[derive(Clone)]
 pub struct Key {

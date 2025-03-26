@@ -1,5 +1,5 @@
 use crate::{
-    endpoints::{issuer::issuer_url, Error},
+    endpoints::{Error, issuer::issuer_url},
     extensions::ConnectionInformation,
     issuer::{IssuerState, JwtIdGenerator},
     server::state::ApplicationState,

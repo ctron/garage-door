@@ -4,11 +4,12 @@ pub mod state;
 use crate::{issuer::IssueBuildError, issuer::Issuer, server::app::Application};
 use actix_cors::Cors;
 use actix_web::{
+    App, HttpServer,
     middleware::{Logger, NormalizePath},
-    web, App, HttpServer,
+    web,
 };
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    collections::{HashMap, hash_map::Entry},
     io,
     net::{AddrParseError, IpAddr, Ipv6Addr, SocketAddr},
 };

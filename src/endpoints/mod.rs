@@ -1,6 +1,6 @@
 use crate::server::state::ApplicationState;
 use actix_web::body::BoxBody;
-use actix_web::{get, web, HttpResponse, Responder, ResponseError};
+use actix_web::{HttpResponse, Responder, ResponseError, get, web};
 use oxide_auth_actix::WebError;
 use serde::Serialize;
 

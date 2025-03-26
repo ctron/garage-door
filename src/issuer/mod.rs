@@ -7,14 +7,14 @@ pub use token::*;
 use crate::{endpoints::Error, secrets::Key};
 use hide::Hide;
 use openidconnect::{
-    core::{
-        CoreClientAuthMethod, CoreGrantType, CoreJsonWebKeySet, CoreResponseType,
-        CoreSubjectIdentifierType, CoreUserInfoClaims,
-    },
     AuthUrl, EmptyAdditionalClaims, EmptyAdditionalProviderMetadata, EndSessionUrl,
     EndUserUsername, IssuerUrl, JsonWebKeySetUrl, LogoutProviderMetadata,
     ProviderMetadataWithLogout, ResponseTypes, StandardClaims, SubjectIdentifier, TokenUrl,
     UserInfoUrl,
+    core::{
+        CoreClientAuthMethod, CoreGrantType, CoreJsonWebKeySet, CoreResponseType,
+        CoreSubjectIdentifierType, CoreUserInfoClaims,
+    },
 };
 use oxide_auth::{
     frontends::simple::{

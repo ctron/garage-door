@@ -1,13 +1,13 @@
 use crate::{extensions::ConnectionInformation, oidc::AccessTokenClaims, secrets::Key};
 use anyhow::bail;
 use biscuit::{
-    jws::{Compact, RegisteredHeader},
     ClaimsSet, CompactJson, CompactPart, RegisteredClaims, SingleOrMultiple, Timestamp,
+    jws::{Compact, RegisteredHeader},
 };
 use chrono::{Duration, Utc};
 use openidconnect::{
-    core::CoreIdTokenClaims, Audience, EmptyAdditionalClaims, IssuerUrl, StandardClaims,
-    SubjectIdentifier,
+    Audience, EmptyAdditionalClaims, IssuerUrl, StandardClaims, SubjectIdentifier,
+    core::CoreIdTokenClaims,
 };
 use oxide_auth::primitives::{generator::TagGrant, grant::Grant};
 use serde::{Deserialize, Serialize};
