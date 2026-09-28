@@ -28,7 +28,7 @@ use oxide_auth::{
     },
 };
 use oxide_auth_actix::OAuthResponse;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 use url::Url;
 
@@ -85,20 +85,18 @@ pub enum IssueBuildError {
     Scope(#[from] ParseScopeErr),
     #[error("Public client requires at least one redirect URI")]
     MissingRedirectUri,
+    #[error("key generation failed: {0}")]
+    Key(String),
 }
-
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub struct KeyConfig(String);
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 pub struct Issuer {
     pub scopes: Vec<String>,
     pub clients: Vec<Client>,
-    pub key: KeyConfig,
 }
 
 impl Issuer {
-    pub fn new<I, S>(key: impl Into<String>, scopes: I) -> anyhow::Result<Self>
+    pub fn new<I, S>(scopes: I) -> anyhow::Result<Self>
     where
         I: IntoIterator<Item = S>,
         S: Into<String>,
@@ -106,7 +104,6 @@ impl Issuer {
         Ok(Self {
             scopes: scopes.into_iter().map(|s| s.into()).collect(),
             clients: Default::default(),
-            key: KeyConfig(key.into()),
         })
     }
 
@@ -151,7 +148,7 @@ impl Issuer {
             }
         }
 
-        let key = Key::new("key1", self.key.0.into_bytes());
+        let key = Key::generate("key1").map_err(|e| IssueBuildError::Key(e.to_string()))?;
 
         let addons = AddonList::new();
         let endpoint = Extended {
@@ -173,6 +170,7 @@ impl Issuer {
         Ok(IssuerState {
             key,
             inner: Arc::new(RwLock::new(InnerState { endpoint })),
+            nonces: Arc::new(RwLock::new(HashMap::new())),
         })
     }
 }
@@ -181,6 +179,7 @@ impl Issuer {
 pub struct IssuerState {
     pub key: Key,
     pub inner: Arc<RwLock<InnerState>>,
+    pub nonces: Arc<RwLock<HashMap<String, String>>>,
 }
 
 impl IssuerState {

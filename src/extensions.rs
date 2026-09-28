@@ -31,7 +31,7 @@ impl ConnectionInformation {
         )
     }
 
-    pub fn decode(s: &str) -> Option<ConnectionInformationData> {
+    pub fn decode(s: &str) -> Option<ConnectionInformationData<'_>> {
         serde_json::from_str(s).ok()
     }
 }

@@ -80,6 +80,19 @@ pub async fn auth_get(
 
     let issuer = server.issuer(&name).ok_or(Error::UnknownIssuer(name))?;
 
+    if let Some(nonce) = req
+        .query()
+        .and_then(|q| q.unique_value("nonce"))
+        .map(|v| v.into_owned())
+    {
+        let client_id = req
+            .query()
+            .and_then(|q| q.unique_value("client_id"))
+            .map(|v| v.into_owned())
+            .unwrap_or_default();
+        issuer.nonces.write().await.insert(client_id, nonce);
+    }
+
     let endpoint = &mut issuer.inner.write().await.endpoint;
 
     Ok(Authorize(req).run(with_conninfo(
@@ -163,7 +176,14 @@ pub async fn token(
 
     let endpoint = &mut issuer.inner.write().await.endpoint;
 
-    let grant_type = req.body().and_then(|body| body.unique_value("grant_type"));
+    let grant_type = req
+        .body()
+        .and_then(|body| body.unique_value("grant_type"))
+        .map(|v| v.into_owned());
+    let client_id = req
+        .body()
+        .and_then(|body| body.unique_value("client_id"))
+        .map(|v| v.into_owned());
 
     Ok(match grant_type.as_deref() {
         Some("client_credentials") => {
@@ -181,8 +201,10 @@ pub async fn token(
         }
         Some("refresh_token") => Refresh(req).run(with_conninfo(endpoint, conn.clone()))?,
         _ => {
+            let cid = client_id.as_deref().unwrap_or("unknown");
+            let nonce = issuer.nonces.write().await.remove(cid);
             let resp = Token(req).run(with_conninfo(endpoint, conn.clone()))?;
-            amend_id_token(resp, &server, &issuer, &conn, &name)?
+            amend_id_token(resp, &server, &issuer, &conn, &name, cid, nonce.as_deref())?
         }
     })
 }

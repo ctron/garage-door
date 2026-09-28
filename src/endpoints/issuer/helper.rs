@@ -25,6 +25,8 @@ pub fn amend_id_token(
     issuer: &IssuerState,
     conn: &ConnectionInfo,
     issuer_name: &str,
+    client_id: &str,
+    nonce: Option<&str>,
 ) -> Result<OAuthResponse, Error> {
     let Some(Ok(mut value)) = resp
         .get_body()
@@ -40,7 +42,7 @@ pub fn amend_id_token(
     let base = issuer_url(server, conn, issuer_name, [])?;
 
     let id_token = JwtIdGenerator::new(issuer.key.clone(), IssuerUrl::from_url(base))
-        .create()
+        .create(client_id, nonce)
         .map_err(|err| Error::Generic(err.to_string()))?;
 
     value["id_token"] = serde_json::to_value(id_token)?;
