@@ -6,13 +6,11 @@ use biscuit::{
 };
 use chrono::{Duration, Utc};
 use openidconnect::{
-    Audience, EmptyAdditionalClaims, IssuerUrl, StandardClaims, SubjectIdentifier,
+    Audience, EmptyAdditionalClaims, IssuerUrl, Nonce, StandardClaims, SubjectIdentifier,
     core::CoreIdTokenClaims,
 };
 use oxide_auth::primitives::{generator::TagGrant, grant::Grant};
 use serde::{Deserialize, Serialize};
-
-const AUD: &str = "some-audience";
 
 pub struct JwtAccessGenerator {
     /// The relative base of the issuer
@@ -52,7 +50,7 @@ impl JwtAccessGenerator {
                 issuer: Some(issuer),
                 subject: Some(grant.owner_id.clone()),
                 issued_at: Some(Utc::now().into()),
-                audience: Some(SingleOrMultiple::Single(AUD.to_string())),
+                audience: Some(SingleOrMultiple::Single(grant.client_id.clone())),
                 expiry,
                 ..Default::default()
             },
@@ -103,8 +101,8 @@ impl JwtIdGenerator {
         Self { key, issuer }
     }
 
-    pub fn create(&self) -> Result<String, anyhow::Error> {
-        let aud = vec![Audience::new(AUD.into())];
+    pub fn create(&self, client_id: &str, nonce: Option<&str>) -> Result<String, anyhow::Error> {
+        let aud = vec![Audience::new(client_id.into())];
         let issue_time = Utc::now();
         let expiration_time = Utc::now() + Duration::seconds(600);
         let subject = SubjectIdentifier::new("Marvin".into());
@@ -117,7 +115,8 @@ impl JwtIdGenerator {
             issue_time,
             std,
             EmptyAdditionalClaims::default(),
-        );
+        )
+        .set_nonce(nonce.map(|n| Nonce::new(n.to_string())));
 
         encode(&self.key, CoreIdToken(claims))
     }
