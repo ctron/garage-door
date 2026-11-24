@@ -1033,7 +1033,6 @@ dependencies = [
  "actix-web",
  "anyhow",
  "biscuit",
- "chrono",
  "clap",
  "hide",
  "log",

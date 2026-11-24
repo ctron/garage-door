@@ -1,16 +1,16 @@
 use crate::{extensions::ConnectionInformation, oidc::AccessTokenClaims, secrets::Key};
 use anyhow::bail;
 use biscuit::{
-    ClaimsSet, CompactJson, CompactPart, RegisteredClaims, SingleOrMultiple, Timestamp,
+    ClaimsSet, CompactJson, CompactPart, RegisteredClaims, SingleOrMultiple,
     jws::{Compact, RegisteredHeader},
 };
-use chrono::{Duration, Utc};
 use openidconnect::{
     Audience, EmptyAdditionalClaims, IssuerUrl, Nonce, StandardClaims, SubjectIdentifier,
     core::CoreIdTokenClaims,
 };
 use oxide_auth::primitives::{generator::TagGrant, grant::Grant};
 use serde::{Deserialize, Serialize};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub struct JwtAccessGenerator {
     /// The relative base of the issuer
@@ -24,8 +24,10 @@ impl JwtAccessGenerator {
     }
 
     fn create(&self, grant: &Grant) -> Result<String, anyhow::Error> {
-        let expiry =
-            chrono::DateTime::from_timestamp(grant.until.timestamp(), 0).map(Timestamp::from);
+        let issued_at: i64 = SystemTime::now()
+            .duration_since(UNIX_EPOCH)?
+            .as_secs()
+            .try_into()?;
 
         let Some(conn) = grant
             .extensions
@@ -49,9 +51,9 @@ impl JwtAccessGenerator {
             registered: RegisteredClaims {
                 issuer: Some(issuer),
                 subject: Some(grant.owner_id.clone()),
-                issued_at: Some(Utc::now().into()),
+                issued_at: Some(issued_at.into()),
                 audience: Some(SingleOrMultiple::Single(grant.client_id.clone())),
-                expiry,
+                expiry: Some(grant.until.into()),
                 ..Default::default()
             },
             private: AccessTokenClaims {
@@ -103,16 +105,16 @@ impl JwtIdGenerator {
 
     pub fn create(&self, client_id: &str, nonce: Option<&str>) -> Result<String, anyhow::Error> {
         let aud = vec![Audience::new(client_id.into())];
-        let issue_time = Utc::now();
-        let expiration_time = Utc::now() + Duration::seconds(600);
+        let issue_time = SystemTime::now();
+        let expiration_time = issue_time + Duration::from_secs(600);
         let subject = SubjectIdentifier::new("Marvin".into());
         let std = StandardClaims::new(subject);
 
         let claims = CoreIdTokenClaims::new(
             self.issuer.clone(),
             aud,
-            expiration_time,
-            issue_time,
+            expiration_time.into(),
+            issue_time.into(),
             std,
             EmptyAdditionalClaims::default(),
         )
