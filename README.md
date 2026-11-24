@@ -6,6 +6,9 @@
 
 > A simple OIDC provider, for demo purposes!
 
+Run `cargo deny --all-features check` to check dependency advisories,
+licenses, duplicate versions, and sources using the policy in `deny.toml`.
+
 ## Rationale
 
 OpenID Connect (OIDC) is great, but complicated. There are great solutions out there allowing one to set up an OIDC
