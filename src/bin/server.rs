@@ -51,7 +51,7 @@ async fn main() -> Result<ExitCode> {
 
     tracing::info!("Starting up...");
 
-    let config: Configuration = serde_yaml::from_reader(std::fs::File::open(&cli.config)?)?;
+    let config: Configuration = serde_saphyr::from_reader(std::fs::File::open(&cli.config)?)?;
 
     tracing::debug!("Read config file");
 
