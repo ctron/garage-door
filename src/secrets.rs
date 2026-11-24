@@ -4,7 +4,7 @@ use openidconnect::{
     core::{CoreJsonWebKey, CoreJwsSigningAlgorithm},
 };
 use ring::signature::RsaKeyPair;
-use rsa::{RsaPrivateKey, pkcs8::EncodePrivateKey, traits::PublicKeyParts};
+use rsa::{PrivateKey, pkcs8::EncodePrivateKey, traits::PublicKeyParts};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -17,15 +17,15 @@ pub struct Key {
 
 impl Key {
     pub fn generate(id: impl Into<String>) -> Result<Self, Box<dyn std::error::Error>> {
-        let mut rng = rand::thread_rng();
-        let private_key = RsaPrivateKey::new(&mut rng, 2048)?;
+        let mut rng = rand::rng();
+        let private_key = PrivateKey::new(&mut rng, 2048)?;
         let pkcs8_der = private_key.to_pkcs8_der()?;
         let key_pair =
             RsaKeyPair::from_pkcs8(pkcs8_der.as_bytes()).map_err(|e| format!("ring: {e}"))?;
 
         let public_key = private_key.to_public_key();
-        let n = public_key.n().to_bytes_be();
-        let e = public_key.e().to_bytes_be();
+        let n = public_key.n_bytes().into_vec();
+        let e = public_key.e_bytes().into_vec();
 
         Ok(Self {
             id: id.into(),

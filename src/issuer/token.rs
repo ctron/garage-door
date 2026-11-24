@@ -123,3 +123,28 @@ impl JwtIdGenerator {
         encode(&self.key, CoreIdToken(claims))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use openidconnect::{
+        ClientId,
+        core::{CoreIdToken as ParsedIdToken, CoreIdTokenVerifier, CoreJsonWebKeySet},
+    };
+
+    #[test]
+    fn generated_key_signs_verifiable_id_token() -> anyhow::Result<()> {
+        let key = Key::generate("test-key").map_err(|err| anyhow::anyhow!(err.to_string()))?;
+        let issuer = IssuerUrl::new("https://issuer.example".into())?;
+        let verifier = CoreIdTokenVerifier::new_public_client(
+            ClientId::new("test-client".into()),
+            issuer.clone(),
+            CoreJsonWebKeySet::new(vec![key.key()]),
+        );
+        let token = JwtIdGenerator::new(key, issuer).create("test-client", Some("test-nonce"))?;
+        let token: ParsedIdToken = token.parse()?;
+        let claims = token.claims(&verifier, &Nonce::new("test-nonce".into()))?;
+        assert_eq!(claims.subject().as_str(), "Marvin");
+        Ok(())
+    }
+}

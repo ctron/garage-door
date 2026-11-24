@@ -25,9 +25,9 @@ oauth2 = "5.0.0-alpha.4"
 openidconnect = { version = "4.1", default-features = false }
 oxide-auth = "0.6.1"
 oxide-auth-actix = "0.3.0"
-rand = "0.8"
+rand = "0.10"
 ring = "0.17"
-rsa = "0.9"
+rsa = "0.10"
 schemars = { version = "0.8", features = ["derive", "url"] }
 serde = { version = "1", features = ["derive"] }
 serde-saphyr = { version = "2.2", default-features = false, features = ["deserialize"], optional = true }
